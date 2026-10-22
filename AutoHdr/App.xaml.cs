@@ -28,7 +28,8 @@ public partial class App : Application
     DispatcherTimer? stateTimer;
     TrayIcon? tray;
     MainWindow? window;
-    bool scanning, hdrRefreshRunning, hdrRefreshQueued, exiting;
+    bool scanning, hdrRefreshRunning, exiting;
+    Task hdrRefresh = Task.CompletedTask;
 
     /// <summary>Нужен генератору App.g.cs; настоящая точка входа — Program.Main.</summary>
     public App() : this([])
@@ -48,7 +49,6 @@ public partial class App : Application
     public ProcessWatcher? Watcher { get; private set; }
     public HdrInfoService HdrInfo { get; } = new();
     public AppStatus Status { get; } = new();
-    public bool? HdrOnNow { get; private set; }
 
     public static new App Current => (App)Application.Current;
 
@@ -198,8 +198,8 @@ public partial class App : Application
         Monitors.Sync(displays);
         var targets = Monitors.Targets(displays);
         if (targets.Count == 0) targets = displays.Where(d => d.HdrSupported).ToList();
-        HdrOnNow = targets.Count == 0 ? null : targets.Any(d => d.HdrOn);
-        tray?.Update(HdrOnNow, Settings.Paused, Engine?.RunningGames ?? []);
+        bool? hdrOn = targets.Count == 0 ? null : targets.Any(d => d.HdrOn);
+        tray?.Update(hdrOn, Settings.Paused, Engine?.RunningGames ?? []);
         window?.UpdateDisplays(displays);
     }
 
@@ -241,7 +241,7 @@ public partial class App : Application
 
     async Task StartupScanAsync()
     {
-        if (Games.Games.Count == 0) Log.Info("Первый запуск: ищу игры в библиотеках");
+        if (Games.Games.Count == 0) Log.Info("Первый запуск: поиск игр в библиотеках");
         await ScanLibrariesAsync();
     }
 
@@ -249,7 +249,7 @@ public partial class App : Application
     {
         if (scanning) return;
         scanning = true;
-        SetBusy("Ищу игры в библиотеках…", indeterminate: true);
+        SetBusy("Поиск игр в библиотеках…", indeterminate: true);
         try
         {
             var folders = Settings.CustomFolders.ToList();
@@ -316,30 +316,29 @@ public partial class App : Application
         Games.Save();
     }
 
-    public async Task RefreshHdrInfoAsync(bool force, IReadOnlyList<GameRecord>? only = null)
-    {
-        if (hdrRefreshRunning)
-        {
-            hdrRefreshQueued = true;
-            return;
-        }
+    /// <summary>Проверки идут по очереди: «Проверить HDR заново» во время другой проверки не теряется.</summary>
+    public Task RefreshHdrInfoAsync(bool force, IReadOnlyList<GameRecord>? only = null) =>
+        hdrRefresh = RefreshHdrInfoAfterAsync(hdrRefresh, force, only);
 
+    async Task RefreshHdrInfoAfterAsync(Task previous, bool force, IReadOnlyList<GameRecord>? only)
+    {
+        await previous;
         var list = (only ?? Games.Games.ToList())
             .Where(g => !g.Missing && (force || g.HdrCheckedAt == null || DateTime.Now - g.HdrCheckedAt > HdrInfoTtl))
             .ToList();
         if (list.Count == 0) return;
 
         hdrRefreshRunning = true;
-        SetBusy($"Проверяю поддержку HDR: 0 из {list.Count}", indeterminate: false);
+        SetBusy($"Проверка поддержки HDR: 0 из {list.Count}", indeterminate: false);
         var progress = new Progress<(int Done, int Total)>(p =>
         {
-            Status.BusyText = $"Проверяю поддержку HDR: {p.Done} из {p.Total}";
+            Status.BusyText = $"Проверка поддержки HDR: {p.Done} из {p.Total}";
             Status.Progress = p.Total == 0 ? 0 : (double)p.Done / p.Total;
         });
 
         try
         {
-            await HdrInfo.RefreshAsync(list, Settings.OnlineHdrInfo, a => Dispatcher.Invoke(a), progress, CancellationToken.None);
+            await HdrInfo.RefreshAsync(list, Settings.OnlineHdrInfo, a => Dispatcher.Invoke(a), progress);
             Games.Save();
             Log.Info($"Проверка HDR: есть — {list.Count(g => g.Hdr == HdrSupport.Yes)}, " +
                      $"возможно — {list.Count(g => g.Hdr == HdrSupport.Maybe)}, " +
@@ -355,12 +354,6 @@ public partial class App : Application
             hdrRefreshRunning = false;
             ClearBusy();
             window?.RefreshGamesView();
-        }
-
-        if (hdrRefreshQueued)
-        {
-            hdrRefreshQueued = false;
-            await RefreshHdrInfoAsync(force: false);
         }
     }
 

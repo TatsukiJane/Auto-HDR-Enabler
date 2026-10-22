@@ -77,7 +77,7 @@ public sealed class AutoHdrEngine
         {
             if (tracked.Count > 0 || settings.PendingRevert.Count == 0) return;
         }
-        Log.Info("HDR остался включённым после прошлого запуска, возвращаю прежний режим");
+        Log.Info("HDR остался включённым после прошлого запуска, возвращается прежний режим");
         _ = RevertAsync();
     }
 
@@ -203,7 +203,7 @@ public sealed class AutoHdrEngine
             if (toDisable.Count > 0)
             {
                 Log.Info($"HDR выключен на: {string.Join(", ", toDisable.Select(d => d.Name))}");
-                Notify?.Invoke("HDR выключен", "Игра закрыта, вернул прежний режим");
+                Notify?.Invoke("HDR выключен", "Игра закрыта");
             }
         }
         catch (Exception ex)

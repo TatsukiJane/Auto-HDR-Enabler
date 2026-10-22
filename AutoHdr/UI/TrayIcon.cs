@@ -26,7 +26,7 @@ public sealed class TrayIcon : IDisposable
         var open = new Forms.ToolStripMenuItem("Открыть Auto HDR", null, (_, _) => app.ShowMainWindow());
         open.Font = new Font(open.Font, System.Drawing.FontStyle.Bold);
         toggleItem = new Forms.ToolStripMenuItem("Включить HDR", null, async (_, _) => await app.ToggleHdrAsync());
-        pauseItem = new Forms.ToolStripMenuItem("Приостановить автопереключение", null, (_, _) => app.SetPaused(!app.Settings.Paused));
+        pauseItem = new Forms.ToolStripMenuItem("Пауза автопереключения", null, (_, _) => app.SetPaused(!app.Settings.Paused));
         var exit = new Forms.ToolStripMenuItem("Выйти", null, (_, _) => app.ExitApp());
 
         var menu = new Forms.ContextMenuStrip();

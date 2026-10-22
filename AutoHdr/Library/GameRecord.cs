@@ -81,6 +81,8 @@ public sealed class GameRecord : Observable
 
     // ---- Для интерфейса ----
 
+    static readonly System.Globalization.CultureInfo Ru = System.Globalization.CultureInfo.GetCultureInfo("ru-RU");
+
     /// <summary>Вызывается, когда пользователь сам меняет флаги в таблице.</summary>
     public static event Action<GameRecord>? UserChanged;
 
@@ -153,7 +155,7 @@ public sealed class GameRecord : Observable
                     break;
             }
             if (!string.IsNullOrWhiteSpace(PcgwNotes)) sb.Append("\n\nPCGamingWiki: ").Append(PcgwNotes);
-            if (HdrCheckedAt != null) sb.Append($"\n\nПроверено {HdrCheckedAt:dd.MM.yyyy}");
+            if (HdrCheckedAt != null) sb.Append(string.Create(Ru, $"\n\nПроверено {HdrCheckedAt:d MMMM yyyy}"));
             return sb.ToString();
         }
     }

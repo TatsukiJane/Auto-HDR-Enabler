@@ -65,7 +65,7 @@ public sealed partial class HdrInfoService
 
     /// <param name="ui">Выполняет действие в потоке интерфейса: записи игр меняются только там.</param>
     public async Task RefreshAsync(IReadOnlyList<GameRecord> games, bool online, Action<Action> ui,
-        IProgress<(int Done, int Total)>? progress, CancellationToken ct)
+        IProgress<(int Done, int Total)>? progress)
     {
         int passes = online ? 3 : 1;
         var remaining = new ConcurrentDictionary<GameRecord, int>(games.Select(g => KeyValuePair.Create(g, passes)));
@@ -79,11 +79,11 @@ public sealed partial class HdrInfoService
                 progress?.Report((Interlocked.Increment(ref done), games.Count));
         }
 
-        var tasks = new List<Task> { Task.Run(() => LocalPass(games, ui, PassFinished, ct), ct) };
+        var tasks = new List<Task> { Task.Run(() => LocalPass(games, ui, PassFinished)) };
         if (online)
         {
-            tasks.Add(Task.Run(() => SteamPassAsync(games, ui, PassFinished, failed, ct), ct));
-            tasks.Add(Task.Run(() => PcgwPassAsync(games, ui, PassFinished, failed, ct), ct));
+            tasks.Add(Task.Run(() => SteamPassAsync(games, ui, PassFinished, failed)));
+            tasks.Add(Task.Run(() => PcgwPassAsync(games, ui, PassFinished, failed)));
         }
         await Task.WhenAll(tasks);
 
@@ -100,7 +100,7 @@ public sealed partial class HdrInfoService
     // ---------------- Steam Store: категория 61 «HDR available» ----------------
 
     async Task SteamPassAsync(IReadOnlyList<GameRecord> games, Action<Action> ui, Action<GameRecord> finished,
-        ConcurrentDictionary<GameRecord, bool> failed, CancellationToken ct)
+        ConcurrentDictionary<GameRecord, bool> failed)
     {
         int errorsInRow = 0;
         foreach (var game in games)
@@ -108,18 +108,14 @@ public sealed partial class HdrInfoService
             try
             {
                 if (game.Source != GameSources.Steam || game.StoreId == null || errorsInRow >= 3) continue;
-                var flag = await SteamHasHdrAsync(game.StoreId, ct);
+                var flag = await SteamHasHdrAsync(game.StoreId);
                 ui(() => { game.SteamHdrFlag = flag; HdrRules.Apply(game); });
                 errorsInRow = 0;
-            }
-            catch (OperationCanceledException) when (ct.IsCancellationRequested)
-            {
-                throw;
             }
             catch (Exception ex)
             {
                 failed[game] = true;
-                if (++errorsInRow == 3) Log.Warn($"Steam Store недоступен, пропускаю остальные игры: {ex.Message}");
+                if (++errorsInRow == 3) Log.Warn($"Steam Store недоступен, остальные игры пропущены: {ex.Message}");
             }
             finally
             {
@@ -128,13 +124,13 @@ public sealed partial class HdrInfoService
         }
     }
 
-    async Task<bool?> SteamHasHdrAsync(string appId, CancellationToken ct)
+    async Task<bool?> SteamHasHdrAsync(string appId)
     {
-        await steamThrottle.WaitAsync(ct);
+        await steamThrottle.WaitAsync();
         var url = $"https://store.steampowered.com/api/appdetails?appids={Uri.EscapeDataString(appId)}&filters=categories&cc=us";
-        using var response = await Http.GetAsync(url, ct);
+        using var response = await Http.GetAsync(url);
         response.EnsureSuccessStatusCode();
-        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         if (!doc.RootElement.TryGetProperty(appId, out var app)) return null;
         if (!app.TryGetProperty("success", out var success) || success.ValueKind != JsonValueKind.True) return null;
         if (!app.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Object) return false;
@@ -146,7 +142,7 @@ public sealed partial class HdrInfoService
     // ---------------- PCGamingWiki: поле hdr в шаблоне {{Video}} ----------------
 
     async Task PcgwPassAsync(IReadOnlyList<GameRecord> games, Action<Action> ui, Action<GameRecord> finished,
-        ConcurrentDictionary<GameRecord, bool> failed, CancellationToken ct)
+        ConcurrentDictionary<GameRecord, bool> failed)
     {
         int errorsInRow = 0;
         foreach (var game in games)
@@ -156,14 +152,14 @@ public sealed partial class HdrInfoService
                 if (errorsInRow >= 3) continue;
                 var page = game.Source switch
                 {
-                    GameSources.Steam when game.StoreId != null => await PcgwLookupAsync("steamappid", game.StoreId, ct),
-                    GameSources.Gog when game.StoreId != null => await PcgwLookupAsync("gogid", game.StoreId, ct),
+                    GameSources.Steam when game.StoreId != null => await PcgwLookupAsync("steamappid", game.StoreId),
+                    GameSources.Gog when game.StoreId != null => await PcgwLookupAsync("gogid", game.StoreId),
                     _ => null,
                 };
-                page ??= await PcgwSearchAsync(game.Name, ct);
+                page ??= await PcgwSearchAsync(game.Name);
 
                 (string? Value, string? Notes) info = (null, null);
-                if (page != null) info = await PcgwHdrAsync(page, ct);
+                if (page != null) info = await PcgwHdrAsync(page);
 
                 ui(() =>
                 {
@@ -174,14 +170,10 @@ public sealed partial class HdrInfoService
                 });
                 errorsInRow = 0;
             }
-            catch (OperationCanceledException) when (ct.IsCancellationRequested)
-            {
-                throw;
-            }
             catch (Exception ex)
             {
                 failed[game] = true;
-                if (++errorsInRow == 3) Log.Warn($"PCGamingWiki недоступна, пропускаю остальные игры: {ex.Message}");
+                if (++errorsInRow == 3) Log.Warn($"PCGamingWiki недоступна, остальные игры пропущены: {ex.Message}");
             }
             finally
             {
@@ -190,25 +182,25 @@ public sealed partial class HdrInfoService
         }
     }
 
-    async Task<JsonDocument> PcgwGetAsync(string query, CancellationToken ct)
+    async Task<JsonDocument> PcgwGetAsync(string query)
     {
         for (int attempt = 0; ; attempt++)
         {
-            await pcgwThrottle.WaitAsync(ct);
-            using var response = await Http.GetAsync($"{PcgwApi}?{query}&format=json", ct);
+            await pcgwThrottle.WaitAsync();
+            using var response = await Http.GetAsync($"{PcgwApi}?{query}&format=json");
             if (response.StatusCode == HttpStatusCode.TooManyRequests && attempt == 0)
             {
-                await Task.Delay(TimeSpan.FromSeconds(61), ct); // PCGamingWiki блокирует IP на 60 с
+                await Task.Delay(TimeSpan.FromSeconds(61)); // PCGamingWiki блокирует IP на 60 с
                 continue;
             }
             response.EnsureSuccessStatusCode();
-            return JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
+            return JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         }
     }
 
-    async Task<string?> PcgwLookupAsync(string field, string value, CancellationToken ct)
+    async Task<string?> PcgwLookupAsync(string field, string value)
     {
-        using var doc = await PcgwGetAsync($"action=idlookup&field={field}&value={Uri.EscapeDataString(value)}", ct);
+        using var doc = await PcgwGetAsync($"action=idlookup&field={field}&value={Uri.EscapeDataString(value)}");
         if (!doc.RootElement.TryGetProperty("idlookup", out var list) || list.ValueKind != JsonValueKind.Array) return null;
         foreach (var item in list.EnumerateArray())
         {
@@ -218,11 +210,11 @@ public sealed partial class HdrInfoService
         return null;
     }
 
-    async Task<string?> PcgwSearchAsync(string name, CancellationToken ct)
+    async Task<string?> PcgwSearchAsync(string name)
     {
         var wanted = NormalizeTitle(name);
         if (wanted.Length == 0) return null;
-        using var doc = await PcgwGetAsync($"action=opensearch&namespace=0&limit=5&search={Uri.EscapeDataString(CleanName(name))}", ct);
+        using var doc = await PcgwGetAsync($"action=opensearch&namespace=0&limit=5&search={Uri.EscapeDataString(CleanName(name))}");
         var root = doc.RootElement;
         if (root.ValueKind != JsonValueKind.Array || root.GetArrayLength() < 2) return null;
         foreach (var title in root[1].EnumerateArray())
@@ -233,10 +225,10 @@ public sealed partial class HdrInfoService
         return null;
     }
 
-    async Task<(string? Value, string? Notes)> PcgwHdrAsync(string page, CancellationToken ct)
+    async Task<(string? Value, string? Notes)> PcgwHdrAsync(string page)
     {
         using var doc = await PcgwGetAsync(
-            $"action=parse&prop=wikitext&redirects=1&formatversion=2&page={Uri.EscapeDataString(page)}", ct);
+            $"action=parse&prop=wikitext&redirects=1&formatversion=2&page={Uri.EscapeDataString(page)}");
         if (!doc.RootElement.TryGetProperty("parse", out var parse)) return (null, null);
         var text = parse.TryGetProperty("wikitext", out var w) ? w.GetString() : null;
         if (string.IsNullOrEmpty(text)) return (null, null);
@@ -331,19 +323,14 @@ public sealed partial class HdrInfoService
     static readonly (string Name, byte[] Ascii, byte[] Utf16)[] MarkerBytes =
         Markers.Select(m => (m, Encoding.ASCII.GetBytes(m), Encoding.Unicode.GetBytes(m))).ToArray();
 
-    static void LocalPass(IReadOnlyList<GameRecord> games, Action<Action> ui, Action<GameRecord> finished, CancellationToken ct)
+    static void LocalPass(IReadOnlyList<GameRecord> games, Action<Action> ui, Action<GameRecord> finished)
     {
         foreach (var game in games)
         {
             try
             {
-                ct.ThrowIfCancellationRequested();
-                var markers = FindMarkers(game, ct);
+                var markers = FindMarkers(game);
                 ui(() => { game.FileMarkers = markers; HdrRules.Apply(game); });
-            }
-            catch (OperationCanceledException) when (ct.IsCancellationRequested)
-            {
-                throw;
             }
             catch (Exception ex)
             {
@@ -356,12 +343,12 @@ public sealed partial class HdrInfoService
         }
     }
 
-    static string? FindMarkers(GameRecord game, CancellationToken ct)
+    static string? FindMarkers(GameRecord game)
     {
         var found = new SortedSet<string>(StringComparer.Ordinal);
         foreach (var exe in CandidateExes(game))
         {
-            try { ScanFile(exe, found, ct); }
+            try { ScanFile(exe, found); }
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
         }
@@ -388,7 +375,7 @@ public sealed partial class HdrInfoService
             .ToList();
     }
 
-    static void ScanFile(string path, ISet<string> found, CancellationToken ct)
+    static void ScanFile(string path, ISet<string> found)
     {
         int overlap = MarkerBytes.Max(m => m.Utf16.Length) - 1;
         var buffer = new byte[8 << 20];
@@ -397,7 +384,6 @@ public sealed partial class HdrInfoService
         int carry = 0;
         while (true)
         {
-            ct.ThrowIfCancellationRequested();
             int read = stream.Read(buffer, carry, buffer.Length - carry);
             if (read <= 0) break;
             int length = carry + read;
@@ -418,13 +404,13 @@ public sealed partial class HdrInfoService
         readonly SemaphoreSlim gate = new(1, 1);
         DateTime last = DateTime.MinValue;
 
-        public async Task WaitAsync(CancellationToken ct)
+        public async Task WaitAsync()
         {
-            await gate.WaitAsync(ct);
+            await gate.WaitAsync();
             try
             {
                 var wait = last + interval - DateTime.UtcNow;
-                if (wait > TimeSpan.Zero) await Task.Delay(wait, ct);
+                if (wait > TimeSpan.Zero) await Task.Delay(wait);
                 last = DateTime.UtcNow;
             }
             finally

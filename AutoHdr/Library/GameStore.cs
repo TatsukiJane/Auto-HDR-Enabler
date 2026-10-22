@@ -12,6 +12,7 @@ public sealed record MergeResult(int Found, int Added, int Removed);
 public sealed class GameStore
 {
     readonly System.Threading.Timer saveTimer;
+    readonly object saveGate = new();
     volatile GameRecord[] snapshot = [];
 
     GameStore(IEnumerable<GameRecord> games)
@@ -32,12 +33,16 @@ public sealed class GameStore
         return new GameStore(list);
     }
 
-    public void RebuildSnapshot() => snapshot = Games.ToArray();
+    void RebuildSnapshot() => snapshot = Games.ToArray();
 
+    /// <summary>Вызывается и из потока интерфейса, и из таймера SaveSoon: без блокировки обе записи делят games.json.tmp.</summary>
     public void Save()
     {
-        try { JsonStore.Save(AppPaths.GamesFile, snapshot.ToList()); }
-        catch (Exception ex) { Log.Error("Не удалось сохранить список игр", ex); }
+        lock (saveGate)
+        {
+            try { JsonStore.Save(AppPaths.GamesFile, snapshot.ToList()); }
+            catch (Exception ex) { Log.Error("Не удалось сохранить список игр", ex); }
+        }
     }
 
     /// <summary>Сохранить с задержкой, чтобы серия кликов по флажкам писала файл один раз.</summary>
@@ -111,7 +116,6 @@ public sealed class GameStore
             removed++;
         }
 
-        RebuildSnapshot();
         return new MergeResult(foundIds.Count, added, removed);
     }
 

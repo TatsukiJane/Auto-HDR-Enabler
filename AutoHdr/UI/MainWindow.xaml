@@ -54,7 +54,7 @@
                         <Button Content="Добавить папку" Style="{StaticResource ToolButton}" Click="AddFolder_Click"
                                 ToolTip="Папка с одной игрой или с несколькими играми в подпапках" />
                         <Button x:Name="RecheckButton" Content="Проверить HDR заново" Style="{StaticResource ToolButton}" Click="Recheck_Click"
-                                ToolTip="Заново запросить данные о поддержке HDR для всех игр" />
+                                ToolTip="Снова запросить Steam и PCGamingWiki для всех игр, даже недавно проверенных" />
                     </StackPanel>
                     <Grid Grid.Column="2" Margin="0,0,8,0">
                         <TextBox x:Name="SearchBox" TextChanged="Search_Changed" VerticalContentAlignment="Center" />
@@ -64,9 +64,9 @@
                     <ComboBox x:Name="FilterBox" Grid.Column="3" SelectedIndex="0" SelectionChanged="Filter_Changed">
                         <ComboBoxItem Content="Все игры" />
                         <ComboBoxItem Content="С авто-HDR" />
-                        <ComboBoxItem Content="HDR есть" />
-                        <ComboBoxItem Content="HDR возможно" />
-                        <ComboBoxItem Content="Без HDR" />
+                        <ComboBoxItem Content="HDR: есть" />
+                        <ComboBoxItem Content="HDR: возможно" />
+                        <ComboBoxItem Content="HDR: нет" />
                         <ComboBoxItem Content="Не проверены" />
                         <ComboBoxItem Content="Не установлены" />
                     </ComboBox>
@@ -78,7 +78,7 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <TextBlock Style="{StaticResource Hint}" Margin="0,0,16,0"
-                               Text="Авто-HDR включается сам для игр, где поддержка HDR подтверждена. «Ждать HDR» придерживает запуск игры, пока HDR не включится: это нужно играм, которые проверяют HDR в первые секунды." />
+                               Text="Авто-HDR включается сам, если поддержку HDR подтвердили Steam или PCGamingWiki. «Ждать HDR» приостанавливает запуск игры, пока HDR не включится: это нужно играм, которые проверяют HDR в первые секунды" />
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"
                                 Visibility="{Binding IsBusy, Converter={StaticResource Visible}}">
                         <ProgressBar Width="140" Height="4" Margin="0,0,10,0" Minimum="0" Maximum="1"
@@ -134,7 +134,7 @@
                                     <DataTemplate>
                                         <CheckBox IsChecked="{Binding HoldUi, UpdateSourceTrigger=PropertyChanged}"
                                                   HorizontalAlignment="Center" MinWidth="0" Focusable="False"
-                                                  ToolTip="Приостановить запуск игры, пока HDR не включится" />
+                                                  ToolTip="Приостанавливать запуск игры, пока HDR не включится" />
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
@@ -152,7 +152,7 @@
                                 <MenuItem Header="Открыть на PCGamingWiki" Click="OpenPcgw_Click" />
                                 <Separator />
                                 <MenuItem Header="Проверить HDR заново" Click="RecheckSelected_Click" />
-                                <MenuItem Header="Вернуть автонастройку авто-HDR" Click="ResetOverride_Click" />
+                                <MenuItem Header="Сбросить ручную настройку авто-HDR" Click="ResetOverride_Click" />
                                 <Separator />
                                 <MenuItem Header="Убрать из списка" Click="Remove_Click" />
                             </ContextMenu>
@@ -162,7 +162,7 @@
                     <StackPanel x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed">
                         <TextBlock Text="Игр пока нет" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" />
                         <TextBlock Style="{StaticResource Hint}" Margin="0,6,0,0" HorizontalAlignment="Center" TextAlignment="Center"
-                                   Text="Нажмите «Найти игры» или добавьте игру вручную" />
+                                   Text="Найдите игры в библиотеках или добавьте их вручную" />
                     </StackPanel>
                 </Grid>
             </DockPanel>
@@ -172,7 +172,7 @@
         <TabItem Header="Мониторы">
             <DockPanel Margin="0,12,0,0">
                 <TextBlock DockPanel.Dock="Top" Style="{StaticResource Hint}" FontSize="13" Margin="0,0,0,12"
-                           Text="HDR переключается только на отмеченных мониторах. Новые мониторы и телевизоры добавляются выключенными." />
+                           Text="HDR переключается только на отмеченных мониторах. Новые мониторы и телевизоры добавляются с выключенным авто-HDR" />
                 <DataGrid x:Name="MonitorsGrid" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
                           HeadersVisibility="Column" GridLinesVisibility="None" SelectionMode="Single" RowHeaderWidth="0"
                           CanUserSortColumns="False">
@@ -220,7 +220,7 @@
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel Margin="0,0,16,16" MaxWidth="760" HorizontalAlignment="Left">
 
-                    <TextBlock Text="Работа" Style="{StaticResource SectionTitle}" />
+                    <TextBlock Text="Основные" Style="{StaticResource SectionTitle}" />
                     <CheckBox x:Name="AutoSwitchCheck" Content="Автопереключение HDR" Style="{StaticResource SettingCheck}"
                               Checked="AutoSwitch_Changed" Unchecked="AutoSwitch_Changed" />
                     <TextBlock Style="{StaticResource Hint}" Margin="28,2,0,0"
@@ -240,7 +240,8 @@
                               Checked="Restore_Changed" Unchecked="Restore_Changed" />
                     <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
                         <TextBlock Text="Задержка перед выключением HDR" VerticalAlignment="Center" />
-                        <TextBox x:Name="GraceBox" Width="72" Margin="12,0,8,0" TextAlignment="Right" LostFocus="Grace_LostFocus" />
+                        <TextBox x:Name="GraceBox" Width="72" Margin="12,0,8,0" TextAlignment="Right"
+                                 TextChanged="Grace_Changed" LostFocus="Grace_LostFocus" />
                         <TextBlock Text="с" VerticalAlignment="Center" />
                     </StackPanel>
                     <TextBlock Style="{StaticResource Hint}" Margin="0,4,0,0"
@@ -252,11 +253,11 @@
                     <CheckBox x:Name="OnlineCheck" Content="Проверять поддержку HDR в интернете" Style="{StaticResource SettingCheck}"
                               Checked="Online_Changed" Unchecked="Online_Changed" />
                     <TextBlock Style="{StaticResource Hint}" Margin="28,2,0,0"
-                               Text="Данные берутся из Steam и PCGamingWiki. Без интернета остаётся только поиск упоминаний HDR в файлах игры" />
+                               Text="Данные берутся из Steam и PCGamingWiki. Без этой проверки остаётся только поиск упоминаний HDR в файлах игры" />
 
                     <TextBlock Text="Параметры запуска в Steam" Style="{StaticResource SectionTitle}" />
                     <TextBlock Style="{StaticResource Hint}" FontSize="13"
-                               Text="Нужны редко: если игра проверяет HDR в первые секунды и не находит его, вставьте строку в Steam → Свойства игры → Параметры запуска. Тогда HDR включится до старта игры." />
+                               Text="Нужны редко: если игра проверяет HDR в первые секунды и не находит его, вставьте строку в Steam → Свойства игры → Параметры запуска. Тогда HDR включится до старта игры" />
                     <Grid Margin="0,8,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />

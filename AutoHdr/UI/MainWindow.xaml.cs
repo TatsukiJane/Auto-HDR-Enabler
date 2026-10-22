@@ -172,7 +172,7 @@ public partial class MainWindow : Window
         if (custom.Count == 0)
         {
             MessageBox.Show(this,
-                "Игры из библиотек остаются в списке, пока установлены. Чтобы Auto HDR их не трогал, снимите флажок «Авто-HDR».",
+                "Игры из библиотек остаются в списке, пока установлены. Чтобы HDR для них не включался, снимите флажок «Авто-HDR»",
                 "Auto HDR", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
@@ -238,8 +238,10 @@ public partial class MainWindow : Window
             }
             var display = displays.FirstOrDefault(d => d.Key == record.Key);
             row.Name = record.Name;
-            var kind = record.IsVirtual ? "виртуальный дисплей" : MonitorRegistry.LooksLikeTv(record.Name) ? "телевизор" : null;
-            row.Details = string.Join(" · ", new[] { record.Connection, record.EdidId, kind }.Where(s => !string.IsNullOrEmpty(s)));
+            // У виртуального дисплея тип подключения и так «Виртуальный»: показываем один раз
+            var connection = record.IsVirtual ? "Виртуальный дисплей" : record.Connection;
+            var kind = !record.IsVirtual && MonitorRegistry.LooksLikeTv(record.Name) ? "телевизор" : null;
+            row.Details = string.Join(" · ", new[] { connection, record.EdidId, kind }.Where(s => !string.IsNullOrEmpty(s)));
             row.Connected = display != null;
             row.HdrSupported = display?.HdrSupported ?? record.HdrSupported;
             row.HdrOn = display?.HdrOn ?? false;
@@ -277,8 +279,8 @@ public partial class MainWindow : Window
 
             bool kernel = app.Watcher?.KernelEvents == true;
             TrackingText.Text = kernel
-                ? "Запуск игр отслеживается событиями Windows: HDR включается сразу после старта процесса."
-                : "Запуск игр отслеживается опросом раз в 0,5 с. С правами администратора Auto HDR замечает игры быстрее.";
+                ? "Запуск игр отслеживается событиями Windows: HDR включается сразу после старта процесса"
+                : "Запуск игр отслеживается опросом раз в 0,5 с. С правами администратора Auto HDR замечает игры быстрее";
             ElevateButton.Visibility = Elevation.IsElevated ? Visibility.Collapsed : Visibility.Visible;
         }
         finally
@@ -341,15 +343,15 @@ public partial class MainWindow : Window
         app.Settings.Save();
     }
 
-    void Grace_LostFocus(object sender, RoutedEventArgs e)
+    // Сохраняем на каждый ввод: LostFocus не срабатывает, если окно закрыли прямо из поля
+    void Grace_Changed(object sender, TextChangedEventArgs e)
     {
-        if (int.TryParse(GraceBox.Text.Trim(), out var seconds))
-        {
-            app.Settings.GracePeriodSec = Math.Clamp(seconds, 0, 600);
-            app.Settings.Save();
-        }
-        GraceBox.Text = app.Settings.GracePeriodSec.ToString();
+        if (loadingSettings || !int.TryParse(GraceBox.Text.Trim(), out var seconds)) return;
+        app.Settings.GracePeriodSec = Math.Clamp(seconds, 0, 600);
+        app.Settings.Save();
     }
+
+    void Grace_LostFocus(object sender, RoutedEventArgs e) => GraceBox.Text = app.Settings.GracePeriodSec.ToString();
 
     void Elevate_Click(object sender, RoutedEventArgs e) => app.RestartElevated();
 

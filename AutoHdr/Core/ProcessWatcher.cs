@@ -93,7 +93,7 @@ public sealed class ProcessWatcher : IDisposable
             }
             catch (Exception ex)
             {
-                Log.Error("События запуска процессов недоступны, работаю опросом", ex);
+                Log.Error("События запуска процессов недоступны, работает опрос", ex);
                 startTrace?.Dispose();
                 startTrace = null;
             }
