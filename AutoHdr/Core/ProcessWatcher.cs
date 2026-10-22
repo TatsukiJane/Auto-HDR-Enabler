@@ -114,10 +114,8 @@ public sealed class ProcessWatcher : IDisposable
         try
         {
             uint pid = Convert.ToUInt32(e.NewEvent["ProcessID"]);
-            lock (gate)
-            {
-                if (!known.Add(pid)) return;
-            }
+            // PID уже в known, если опрос успел раньше или PID освободился меньше 0,5 с назад. Повтор движку не вредит
+            lock (gate) known.Add(pid);
             var path = ProcessUtil.GetPath(pid);
             if (path != null) Raise(() => Started?.Invoke(pid, path));
         }

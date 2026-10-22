@@ -268,7 +268,8 @@ public partial class App : Application
             scanning = false;
             ClearBusy();
         }
-        await RefreshHdrInfoAsync(force: false);
+        // Не ждём проверку HDR: она идёт минутами, а кнопка поиска должна освободиться сразу
+        _ = RefreshHdrInfoAsync(force: false);
     }
 
     public async Task AddFolderAsync(string folder)
