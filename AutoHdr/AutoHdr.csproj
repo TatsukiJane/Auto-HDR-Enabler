@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>AutoHdr</AssemblyName>
+    <RootNamespace>AutoHdr</RootNamespace>
+    <StartupObject>AutoHdr.Program</StartupObject>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <Version>1.0.0</Version>
+    <Product>Auto HDR</Product>
+    <Description>Автоматически включает HDR в Windows при запуске игр</Description>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <!-- WPF0001: Fluent-тема (ThemeMode), WFO5001: тёмный режим WinForms для меню трея -->
+    <!-- WFO0003: DPI задан в манифесте сознательно, им управляет WPF -->
+    <NoWarn>$(NoWarn);WPF0001;WFO5001;WFO0003;SYSLIB1054</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- WinForms нужен только для значка в трее: убираем его глобальные using, чтобы не конфликтовал с WPF -->
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Management" Version="10.0.13" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\app.ico" />
+  </ItemGroup>
+
+</Project>
