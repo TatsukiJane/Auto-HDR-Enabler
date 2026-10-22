@@ -237,7 +237,8 @@
                     <TextBlock x:Name="AutostartHint" Style="{StaticResource Hint}" Margin="28,2,0,0"
                                Text="Auto HDR запускается через планировщик заданий с правами администратора, без окна UAC" />
 
-                    <TextBlock x:Name="TrackingText" Margin="0,14,0,0" TextWrapping="Wrap" />
+                    <TextBlock x:Name="TrackingText" Margin="0,14,0,0" TextWrapping="Wrap"
+                               Text="Без прав администратора «Ждать HDR» не сможет приостановить игру, запущенную с правами администратора" />
                     <Button x:Name="ElevateButton" Content="Перезапустить с правами администратора" HorizontalAlignment="Left"
                             Padding="12,6" Margin="0,8,0,0" Click="Elevate_Click" />
 

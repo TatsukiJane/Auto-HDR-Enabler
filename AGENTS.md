@@ -11,8 +11,7 @@ Auto HDR — приложение в трее для Windows 11: включае�
 ## Стек и сборка
 
 - C# / .NET 10, WPF (`net10.0-windows`), WinForms только для значка в трее. Один проект: `AutoHdr/AutoHdr.csproj`.
-- Единственная зависимость — NuGet-пакет `System.Management` (события запуска процессов через WMI).
-- Остальное — P/Invoke в Windows API (`AutoHdr/Core/Native.cs`).
+- Пакетов NuGet нет: всё, чего нет в .NET, — P/Invoke в Windows API (`AutoHdr/Core/Native.cs`).
 - Решения (`.sln`) нет, тестового проекта нет.
 
 ## Как запускать и проверять

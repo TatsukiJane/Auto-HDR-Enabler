@@ -12,7 +12,7 @@
     <StartupObject>AutoHdr.Program</StartupObject>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
-    <Version>1.0.4</Version>
+    <Version>1.0.5</Version>
     <Product>Auto HDR</Product>
     <Description>Автоматически включает HDR в Windows при запуске игр</Description>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
@@ -25,10 +25,6 @@
     <!-- WinForms нужен только для значка в трее: убираем его глобальные using, чтобы не конфликтовал с WPF -->
     <Using Remove="System.Windows.Forms" />
     <Using Remove="System.Drawing" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="System.Management" Version="10.0.13" />
   </ItemGroup>
 
   <ItemGroup>

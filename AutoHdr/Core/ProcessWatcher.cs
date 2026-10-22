@@ -1,4 +1,3 @@
-using System.Management;
 using static AutoHdr.Core.Native;
 
 namespace AutoHdr.Core;
@@ -59,45 +58,23 @@ public static class ProcessUtil
 }
 
 /// <summary>
-/// Сообщает о запуске и завершении процессов.
-/// С правами администратора старт ловится событиями ядра (Win32_ProcessStartTrace) почти мгновенно,
-/// без них — опросом списка процессов раз в 0,5 с. Завершение всегда определяется опросом.
+/// Сообщает о запуске и завершении процессов опросом списка раз в 0,25 с.
+/// События WMI (Win32_ProcessStartTrace) убраны: приходили через 0,2–0,5 с и стоили около 1,5 мс
+/// на каждый запуск любого процесса в системе, а опрос замечает запуск примерно за 0,08 мс.
 /// </summary>
 public sealed class ProcessWatcher : IDisposable
 {
-    readonly object gate = new();
+    const int PollMs = 250;
     readonly HashSet<uint> known = [];
-    Timer? timer;
-    ManagementEventWatcher? startTrace;
-    int polling;
+    readonly ManualResetEvent stop = new(false);
 
     public event Action<uint, string>? Started;
     public event Action<uint>? Exited;
 
-    public bool KernelEvents { get; private set; }
-
     public void Start()
     {
         var initial = ProcessUtil.EnumPids();
-        lock (gate) known.UnionWith(initial);
-
-        if (Elevation.IsElevated)
-        {
-            try
-            {
-                // EventQuery, а не WqlEventQuery: парсер WqlEventQuery отвергает запрос со списком полей
-                startTrace = new ManagementEventWatcher(new EventQuery("SELECT ProcessID FROM Win32_ProcessStartTrace"));
-                startTrace.EventArrived += OnStartTrace;
-                startTrace.Start();
-                KernelEvents = true;
-            }
-            catch (Exception ex)
-            {
-                Log.Error("События запуска процессов недоступны, работает опрос", ex);
-                startTrace?.Dispose();
-                startTrace = null;
-            }
-        }
+        known.UnionWith(initial);
 
         // Игры, которые уже были запущены до старта приложения
         foreach (var pid in initial)
@@ -106,42 +83,23 @@ public sealed class ProcessWatcher : IDisposable
             if (path != null) Raise(() => Started?.Invoke(pid, path));
         }
 
-        timer = new Timer(_ => Poll(), null, 500, 500);
-    }
-
-    void OnStartTrace(object sender, EventArrivedEventArgs e)
-    {
-        try
-        {
-            uint pid = Convert.ToUInt32(e.NewEvent["ProcessID"]);
-            // PID уже в known, если опрос успел раньше или PID освободился меньше 0,5 с назад. Повтор движку не вредит
-            lock (gate) known.Add(pid);
-            var path = ProcessUtil.GetPath(pid);
-            if (path != null) Raise(() => Started?.Invoke(pid, path));
-        }
-        catch (Exception ex)
-        {
-            Log.Error("Ошибка обработки события запуска процесса", ex);
-        }
+        // Свой поток, а не Timer: Timer на каждом тике будит ещё поток таймера и пул, это вдвое дороже
+        new Thread(() => { while (!stop.WaitOne(PollMs)) Poll(); }) { IsBackground = true, Name = "ProcessWatcher" }.Start();
     }
 
     void Poll()
     {
-        if (Interlocked.Exchange(ref polling, 1) == 1) return;
         try
         {
             var current = ProcessUtil.EnumPids();
             var currentSet = new HashSet<uint>(current);
             var started = new List<uint>();
             var exited = new List<uint>();
-            lock (gate)
-            {
-                foreach (var pid in current)
-                    if (known.Add(pid)) started.Add(pid);
-                foreach (var pid in known)
-                    if (!currentSet.Contains(pid)) exited.Add(pid);
-                foreach (var pid in exited) known.Remove(pid);
-            }
+            foreach (var pid in current)
+                if (known.Add(pid)) started.Add(pid);
+            foreach (var pid in known)
+                if (!currentSet.Contains(pid)) exited.Add(pid);
+            foreach (var pid in exited) known.Remove(pid);
 
             foreach (var pid in started)
             {
@@ -154,10 +112,6 @@ public sealed class ProcessWatcher : IDisposable
         {
             Log.Error("Ошибка опроса процессов", ex);
         }
-        finally
-        {
-            Volatile.Write(ref polling, 0);
-        }
     }
 
     static void Raise(Action action)
@@ -166,15 +120,5 @@ public sealed class ProcessWatcher : IDisposable
         catch (Exception ex) { Log.Error("Ошибка обработчика процесса", ex); }
     }
 
-    public void Dispose()
-    {
-        timer?.Dispose();
-        timer = null;
-        if (startTrace != null)
-        {
-            try { startTrace.Stop(); } catch { }
-            startTrace.Dispose();
-            startTrace = null;
-        }
-    }
+    public void Dispose() => stop.Set();
 }

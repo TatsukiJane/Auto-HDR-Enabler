@@ -106,8 +106,7 @@ public partial class App : Application
         Watcher.Exited += Engine.OnExited;
         Watcher.Start();
         StartupTrace.Mark("watcher started");
-        Log.Info($"Auto HDR запущен. Права администратора: {(Elevation.IsElevated ? "есть" : "нет")}, " +
-                 $"отслеживание запуска игр: {(Watcher.KernelEvents ? "события Windows" : "опрос раз в 0,5 с")}");
+        Log.Info($"Auto HDR запущен. Права администратора: {(Elevation.IsElevated ? "есть" : "нет")}");
         Engine.RecoverPending();
 
         SystemEvents.DisplaySettingsChanged += (_, _) => Dispatcher.BeginInvoke(RefreshHdrState);
@@ -375,7 +374,7 @@ public partial class App : Application
 
     // ---------------- Права и выход ----------------
 
-    /// <summary>Перезапуск с правами администратора: старт игр ловится событиями Windows, а не опросом.</summary>
+    /// <summary>Перезапуск с правами администратора: «Ждать HDR» сможет приостановить и игру, запущенную с правами администратора.</summary>
     public void RestartElevated()
     {
         if (TaskInstaller.RunElevated("--wait", wait: false) != 0) return;

@@ -286,11 +286,7 @@ public partial class MainWindow : Window
             NotifyCheck.IsChecked = s.Notifications;
             OnlineCheck.IsChecked = s.OnlineHdrInfo;
 
-            bool kernel = app.Watcher?.KernelEvents == true;
-            TrackingText.Text = kernel
-                ? "Запуск игр отслеживается событиями Windows: HDR включается сразу после старта процесса"
-                : "Запуск игр отслеживается опросом раз в 0,5 с. С правами администратора Auto HDR замечает игры быстрее";
-            ElevateButton.Visibility = Elevation.IsElevated ? Visibility.Collapsed : Visibility.Visible;
+            ElevateButton.Visibility = TrackingText.Visibility = Elevation.IsElevated ? Visibility.Collapsed : Visibility.Visible;
         }
         finally
         {
