@@ -107,7 +107,9 @@ public sealed partial class HdrInfoService
         {
             try
             {
-                if (game.Source != GameSources.Steam || game.StoreId == null || errorsInRow >= 3) continue;
+                if (game.Source != GameSources.Steam || game.StoreId == null) continue;
+                // Пропущенную из-за сети игру проверим в следующий раз, а не через 30 дней
+                if (errorsInRow >= 3) { failed[game] = true; continue; }
                 var flag = await SteamHasHdrAsync(game.StoreId);
                 ui(() => { game.SteamHdrFlag = flag; HdrRules.Apply(game); });
                 errorsInRow = 0;
@@ -149,7 +151,7 @@ public sealed partial class HdrInfoService
         {
             try
             {
-                if (errorsInRow >= 3) continue;
+                if (errorsInRow >= 3) { failed[game] = true; continue; }
                 var page = game.Source switch
                 {
                     GameSources.Steam when game.StoreId != null => await PcgwLookupAsync("steamappid", game.StoreId),
