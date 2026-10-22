@@ -55,7 +55,7 @@ public static class Cli
 
         // Лаунчер мог передать управление другому процессу из папки игры: ждём, пока закроются все
         var root = GameRoot(exe);
-        var grace = TimeSpan.FromSeconds(Math.Clamp(settings.GracePeriodSec, 3, 600));
+        var grace = TimeSpan.FromSeconds(Math.Clamp(settings.ExitDelay ? settings.ExitDelaySec : 0, 3, 600));
         var quietSince = DateTime.UtcNow;
         while (DateTime.UtcNow - quietSince < grace)
         {

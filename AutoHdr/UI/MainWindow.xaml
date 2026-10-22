@@ -244,14 +244,17 @@
                     <TextBlock Text="После игры" Style="{StaticResource SectionTitle}" />
                     <CheckBox x:Name="RestoreCheck" Content="Возвращать прежний режим после выхода из игры" Style="{StaticResource SettingCheck}"
                               Checked="Restore_Changed" Unchecked="Restore_Changed" />
-                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                        <TextBlock Text="Задержка перед выключением HDR" VerticalAlignment="Center" />
-                        <TextBox x:Name="GraceBox" Width="72" Margin="12,0,8,0" TextAlignment="Right"
-                                 TextChanged="Grace_Changed" LostFocus="Grace_LostFocus" />
+                    <CheckBox x:Name="ExitDelayCheck" Content="Задержка перед выключением HDR" Style="{StaticResource SettingCheck}"
+                              Margin="0,14,0,0" Checked="ExitDelay_Changed" Unchecked="ExitDelay_Changed" />
+                    <TextBlock Style="{StaticResource Hint}" Margin="28,2,0,0"
+                               Text="Включите, если HDR мигает, когда лаунчер передаёт управление игре или игра перезапускается" />
+                    <StackPanel Orientation="Horizontal" Margin="28,8,0,0"
+                                Visibility="{Binding IsChecked, ElementName=ExitDelayCheck, Converter={StaticResource Visible}}">
+                        <TextBlock Text="Время задержки" VerticalAlignment="Center" />
+                        <TextBox x:Name="ExitDelayBox" Width="72" Margin="12,0,8,0" TextAlignment="Right"
+                                 TextChanged="ExitDelaySec_Changed" LostFocus="ExitDelaySec_LostFocus" />
                         <TextBlock Text="с" VerticalAlignment="Center" />
                     </StackPanel>
-                    <TextBlock Style="{StaticResource Hint}" Margin="0,4,0,0"
-                               Text="Не даёт HDR мигать, когда лаунчер передаёт управление игре или игра перезапускается" />
                     <CheckBox x:Name="NotifyCheck" Content="Уведомления о переключении HDR" Style="{StaticResource SettingCheck}"
                               Margin="0,14,0,0" Checked="Notify_Changed" Unchecked="Notify_Changed" />
 

@@ -4,8 +4,11 @@ public sealed class AppSettings
 {
     static readonly object Gate = new();
 
-    /// <summary>Сколько секунд ждать после закрытия последнего процесса игры, прежде чем вернуть SDR.</summary>
-    public int GracePeriodSec { get; set; } = 10;
+    /// <summary>Ждать ли после закрытия последнего процесса игры, прежде чем вернуть SDR.</summary>
+    public bool ExitDelay { get; set; }
+
+    /// <summary>Сколько секунд ждать, если включена <see cref="ExitDelay"/>.</summary>
+    public int ExitDelaySec { get; set; } = 5;
     public bool RestoreAfterExit { get; set; } = true;
     public bool Notifications { get; set; } = true;
     public bool Paused { get; set; }

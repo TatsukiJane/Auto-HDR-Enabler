@@ -172,7 +172,7 @@ public sealed class AutoHdrEngine
             cts = graceCts = new CancellationTokenSource();
         }
 
-        var delay = TimeSpan.FromSeconds(Math.Clamp(settings.GracePeriodSec, 0, 600));
+        var delay = TimeSpan.FromSeconds(settings.ExitDelay ? Math.Clamp(settings.ExitDelaySec, 0, 600) : 0);
         _ = Task.Delay(delay, cts.Token).ContinueWith(t =>
         {
             if (!t.IsCanceled) _ = RevertAsync();

@@ -12,7 +12,7 @@
     <StartupObject>AutoHdr.Program</StartupObject>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
-    <Version>1.0.3</Version>
+    <Version>1.0.4</Version>
     <Product>Auto HDR</Product>
     <Description>Автоматически включает HDR в Windows при запуске игр</Description>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>

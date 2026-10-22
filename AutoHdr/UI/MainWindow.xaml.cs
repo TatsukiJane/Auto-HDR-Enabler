@@ -281,7 +281,8 @@ public partial class MainWindow : Window
             var s = app.Settings;
             AutoSwitchCheck.IsChecked = !s.Paused;
             RestoreCheck.IsChecked = s.RestoreAfterExit;
-            GraceBox.Text = s.GracePeriodSec.ToString();
+            ExitDelayCheck.IsChecked = s.ExitDelay;
+            ExitDelayBox.Text = s.ExitDelaySec.ToString();
             NotifyCheck.IsChecked = s.Notifications;
             OnlineCheck.IsChecked = s.OnlineHdrInfo;
 
@@ -351,15 +352,22 @@ public partial class MainWindow : Window
         app.Settings.Save();
     }
 
-    // Сохраняем на каждый ввод: LostFocus не срабатывает, если окно закрыли прямо из поля
-    void Grace_Changed(object sender, TextChangedEventArgs e)
+    void ExitDelay_Changed(object sender, RoutedEventArgs e)
     {
-        if (loadingSettings || !int.TryParse(GraceBox.Text.Trim(), out var seconds)) return;
-        app.Settings.GracePeriodSec = Math.Clamp(seconds, 0, 600);
+        if (loadingSettings) return;
+        app.Settings.ExitDelay = ExitDelayCheck.IsChecked == true;
         app.Settings.Save();
     }
 
-    void Grace_LostFocus(object sender, RoutedEventArgs e) => GraceBox.Text = app.Settings.GracePeriodSec.ToString();
+    // Сохраняем на каждый ввод: LostFocus не срабатывает, если окно закрыли прямо из поля
+    void ExitDelaySec_Changed(object sender, TextChangedEventArgs e)
+    {
+        if (loadingSettings || !int.TryParse(ExitDelayBox.Text.Trim(), out var seconds)) return;
+        app.Settings.ExitDelaySec = Math.Clamp(seconds, 0, 600);
+        app.Settings.Save();
+    }
+
+    void ExitDelaySec_LostFocus(object sender, RoutedEventArgs e) => ExitDelayBox.Text = app.Settings.ExitDelaySec.ToString();
 
     void Elevate_Click(object sender, RoutedEventArgs e) => app.RestartElevated();
 
