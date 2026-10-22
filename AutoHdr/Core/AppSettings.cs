@@ -15,6 +15,9 @@ public sealed class AppSettings
     public bool OnlineHdrInfo { get; set; } = true;
     public bool TrayHintShown { get; set; }
 
+    /// <summary>"ru", "en" или null — язык Windows.</summary>
+    public string? Language { get; set; }
+
     /// <summary>Папки, добавленные кнопкой «Добавить папку с играми»: пересканируются вместе с библиотеками.</summary>
     public List<string> CustomFolders { get; set; } = [];
 
@@ -31,7 +34,7 @@ public sealed class AppSettings
         lock (Gate)
         {
             try { JsonStore.Save(AppPaths.SettingsFile, this); }
-            catch (Exception ex) { Log.Error("Не удалось сохранить настройки", ex); }
+            catch (Exception ex) { Log.Error(Loc.T("Не удалось сохранить настройки", "Could not save settings"), ex); }
         }
     }
 }

@@ -58,7 +58,8 @@ public static class AppPaths
             catch (FileNotFoundException) { continue; }
             catch (DirectoryNotFoundException) { continue; }
             if ((attributes & FileAttributes.ReparsePoint) != 0)
-                throw new IOException($"{path} ведёт в другое место, копия с правами администратора его не трогает");
+                throw new IOException(Loc.T($"{path} ведёт в другое место, копия с правами администратора его не трогает",
+                    $"{path} points elsewhere, the elevated copy does not touch it"));
         }
     }
 }
@@ -203,7 +204,7 @@ public static class JsonStore
         }
         catch (Exception ex)
         {
-            Log.Error($"Не удалось прочитать {Path.GetFileName(path)}, файл сохранён как .bad", ex);
+            Log.Error(Loc.T($"Не удалось прочитать {Path.GetFileName(path)}, файл сохранён как .bad", $"Could not read {Path.GetFileName(path)}, the file was saved as .bad"), ex);
             try
             {
                 AppPaths.EnsureNoReparsePoint(path, path + ".bad");

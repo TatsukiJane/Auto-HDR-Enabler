@@ -53,7 +53,7 @@ public static class Snapshot
             var path = Path.Combine(directory, $"{i + 1}-{names[i]}.png");
             using var stream = File.Create(path);
             encoder.Save(stream);
-            Log.Info($"Снимок вкладки сохранён: {path}");
+            Log.Info(Loc.T($"Снимок вкладки сохранён: {path}", $"Tab snapshot saved: {path}"));
         }
         window.CloseForExit();
     }

@@ -15,14 +15,15 @@ public static class Cli
     /// </summary>
     public static int Launch(string[] command)
     {
-        Log.Prefix = "[запуск] ";
+        var settings = AppSettings.Load();
+        Loc.Use(settings.Language);
+        Log.Prefix = Loc.T("[запуск] ", "[launch] ");
         if (command.Length == 0)
         {
-            Log.Warn("Не передана команда запуска игры");
+            Log.Warn(Loc.T("Не передана команда запуска игры", "No game launch command given"));
             return 2;
         }
 
-        var settings = AppSettings.Load();
         var monitors = MonitorRegistry.Load();
         var exe = command[0];
         try { exe = Path.GetFullPath(exe); } catch { }
@@ -31,13 +32,14 @@ public static class Cli
         var displays = HdrControl.GetDisplays();
         monitors.Sync(displays);
         var enabled = new List<string>();
-        if (settings.Paused) Log.Info($"Автопереключение на паузе: {gameName} запускается без HDR");
+        if (settings.Paused) Log.Info(Loc.T($"Автопереключение на паузе: {gameName} запускается без HDR", $"Auto switching paused: {gameName} starts without HDR"));
         foreach (var display in monitors.Targets(displays).Where(d => !d.HdrOn && !settings.Paused))
             if (HdrControl.SetHdr(display, true)) enabled.Add(display.Key);
         if (enabled.Count > 0)
         {
             bool ok = HdrControl.WaitForState(enabled, true, ConfirmTimeout);
-            Log.Info(ok ? $"HDR включён перед запуском {gameName}" : $"HDR не подтвердился перед запуском {gameName}");
+            Log.Info(ok ? Loc.T($"HDR включён перед запуском {gameName}", $"HDR turned on before starting {gameName}")
+                : Loc.T($"HDR не подтвердился перед запуском {gameName}", $"HDR not confirmed before starting {gameName}"));
         }
 
         int exitCode;
@@ -50,7 +52,7 @@ public static class Cli
         }
         catch (Exception ex)
         {
-            Log.Error($"Не удалось запустить {exe}", ex);
+            Log.Error(Loc.T($"Не удалось запустить {exe}", $"Could not start {exe}"), ex);
             exitCode = 1;
         }
 
@@ -82,7 +84,7 @@ public static class Cli
             if (toDisable.Count > 0)
             {
                 HdrControl.WaitForState(toDisable.Select(d => d.Key).ToList(), false, ConfirmTimeout);
-                Log.Info($"{gameName} закрыта, HDR выключен");
+                Log.Info(Loc.T($"{gameName} закрыта, HDR выключен", $"{gameName} closed, HDR turned off"));
             }
         }
         return exitCode;
@@ -128,6 +130,7 @@ public static class Cli
     public static int Hdr(string[] args)
     {
         AttachToParentConsole();
+        Loc.Use(AppSettings.Load().Language);
         var command = args.Length > 0 ? args[0].ToLowerInvariant() : "status";
         var monitors = MonitorRegistry.Load();
         var displays = HdrControl.GetDisplays();
@@ -140,7 +143,7 @@ public static class Cli
         {
             if (targets.Count == 0)
             {
-                Console.WriteLine("Нет мониторов с поддержкой HDR");
+                Console.WriteLine(Loc.T("Нет мониторов с поддержкой HDR", "No displays support HDR"));
                 return 2;
             }
             bool on = command switch { "on" => true, "off" => false, _ => !targets.Any(d => d.HdrOn) };
@@ -150,14 +153,15 @@ public static class Cli
         }
         else if (command != "status")
         {
-            Console.WriteLine("Использование: AutoHdr.exe --hdr [status|on|off|toggle]");
+            Console.WriteLine(Loc.T("Использование", "Usage") + ": AutoHdr.exe --hdr [status|on|off|toggle]");
             return 3;
         }
 
         foreach (var d in displays)
         {
-            var state = !d.HdrSupported ? "HDR не поддерживается" : d.HdrOn ? "HDR включён" : "HDR выключен";
-            var auto = monitors.IsAuto(d) ? ", авто-HDR" : "";
+            var state = !d.HdrSupported ? Loc.T("HDR не поддерживается", "HDR not supported")
+                : d.HdrOn ? Loc.T("HDR включён", "HDR on") : Loc.T("HDR выключен", "HDR off");
+            var auto = monitors.IsAuto(d) ? Loc.T(", авто-HDR", ", auto HDR") : "";
             Console.WriteLine($"{d.Name} ({d.Connection}{auto}): {state}");
         }
 

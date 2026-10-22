@@ -20,6 +20,14 @@ public static class GameSources
 
     /// <summary>Порядок при дублях: одна и та же папка из двух источников остаётся за первым.</summary>
     public static readonly string[] Priority = [Steam, Gog, Epic, Ea, Ubisoft, Xbox, Rockstar, Folder, Manual];
+
+    /// <summary>Название источника на языке интерфейса: в games.json «Папка» и «Вручную» хранятся по-русски.</summary>
+    public static string Display(string source) => source switch
+    {
+        Folder => Loc.T("Папка", "Folder"),
+        Manual => Loc.T("Вручную", "Manual"),
+        _ => source,
+    };
 }
 
 public sealed class GameRecord : Observable
@@ -80,8 +88,6 @@ public sealed class GameRecord : Observable
 
     // ---- Для интерфейса ----
 
-    static readonly System.Globalization.CultureInfo Ru = System.Globalization.CultureInfo.GetCultureInfo("ru-RU");
-
     /// <summary>Вызывается, когда пользователь сам меняет флаги в таблице.</summary>
     public static event Action<GameRecord>? UserChanged;
 
@@ -113,10 +119,10 @@ public sealed class GameRecord : Observable
     [JsonIgnore]
     public string HdrText => Hdr switch
     {
-        HdrSupport.Yes => "Есть",
-        HdrSupport.Maybe => "Возможно",
-        HdrSupport.No => "Нет",
-        _ => "Неизвестно",
+        HdrSupport.Yes => Loc.T("Есть", "Yes"),
+        HdrSupport.Maybe => Loc.T("Возможно", "Maybe"),
+        HdrSupport.No => Loc.T("Нет", "No"),
+        _ => Loc.T("Неизвестно", "Unknown"),
     };
 
     [JsonIgnore]
@@ -137,31 +143,33 @@ public sealed class GameRecord : Observable
             switch (Hdr)
             {
                 case HdrSupport.Yes:
-                    sb.Append("HDR поддерживается, источник: ").Append(HdrSources);
+                    sb.Append(Loc.T("HDR поддерживается, источник: ", "HDR supported, source: ")).Append(HdrSources);
                     break;
                 case HdrSupport.No:
-                    sb.Append("HDR не поддерживается, источник: PCGamingWiki");
+                    sb.Append(Loc.T("HDR не поддерживается, источник: PCGamingWiki", "HDR not supported, source: PCGamingWiki"));
                     break;
                 case HdrSupport.Maybe when PcgwValue == "hackable":
-                    sb.Append("PCGamingWiki: HDR можно включить сторонним модом");
+                    sb.Append(Loc.T("PCGamingWiki: HDR можно включить сторонним модом", "PCGamingWiki: HDR can be added with a third-party mod"));
                     break;
                 case HdrSupport.Maybe:
-                    sb.Append("В файлах игры есть упоминания HDR: ").Append(FileMarkers)
-                      .Append(". Проверьте настройки графики в самой игре");
+                    sb.Append(Loc.T("В файлах игры есть упоминания HDR: ", "The game files mention HDR: ")).Append(FileMarkers)
+                      .Append(Loc.T(". Проверьте настройки графики в самой игре", ". Check the graphics settings in the game itself"));
                     break;
                 default:
-                    sb.Append(HdrCheckedAt == null ? "Поддержку HDR ещё не проверяли" : "Нет данных о поддержке HDR");
+                    sb.Append(HdrCheckedAt == null ? Loc.T("Поддержку HDR ещё не проверяли", "HDR support not checked yet") : Loc.T("Нет данных о поддержке HDR", "No data on HDR support"));
                     break;
             }
             if (!string.IsNullOrWhiteSpace(PcgwNotes)) sb.Append("\n\nPCGamingWiki: ").Append(PcgwNotes);
-            if (HdrCheckedAt != null) sb.Append(string.Create(Ru, $"\n\nПроверено {HdrCheckedAt:d MMMM yyyy}"));
+            if (HdrCheckedAt != null) sb.Append(string.Create(Loc.Culture, $"\n\n{Loc.T("Проверено", "Checked")} {HdrCheckedAt:d MMMM yyyy}"));
             return sb.ToString();
         }
     }
 
     [JsonIgnore] public string Location => ExePath ?? InstallDir ?? "";
     [JsonIgnore] public bool IsCustom => Source is GameSources.Folder or GameSources.Manual;
-    [JsonIgnore] public string SourceText => Missing ? $"{Source}, не установлена" : Source;
+    [JsonIgnore] public string SourceText => Missing
+        ? Loc.T($"{GameSources.Display(Source)}, не установлена", $"{GameSources.Display(Source)}, not installed")
+        : GameSources.Display(Source);
 
     public void RaiseHdrDetails()
     {

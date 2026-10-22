@@ -62,7 +62,7 @@ public sealed class AutoHdrEngine
             graceCts = null;
         }
 
-        if (firstProcess) Log.Info($"Запущена игра «{game.Name}»: {Path.GetFileName(path)}, PID {pid}");
+        if (firstProcess) Log.Info(Loc.T($"Запущена игра «{game.Name}»: {Path.GetFileName(path)}, PID {pid}", $"Game started “{game.Name}”: {Path.GetFileName(path)}, PID {pid}"));
         _ = Task.Run(() => EnsureHdrAsync(game, pid));
     }
 
@@ -78,7 +78,7 @@ public sealed class AutoHdrEngine
             if (tracked.Count == 0) ScheduleRevert();
         }
 
-        if (gameClosed) Log.Info($"Игра «{game.Name}» закрыта");
+        if (gameClosed) Log.Info(Loc.T($"Игра «{game.Name}» закрыта", $"Game closed “{game.Name}”"));
         StateChanged?.Invoke();
     }
 
@@ -94,7 +94,7 @@ public sealed class AutoHdrEngine
             if (tracked.Count > 0 || graceCts != null || !displays.Any(d => settings.PendingRevert.Contains(d.Key))) return;
             ScheduleRevert();
         }
-        Log.Info("HDR, включённый для игры, ещё не выключен: возвращается прежний режим");
+        Log.Info(Loc.T("HDR, включённый для игры, ещё не выключен: возвращается прежний режим", "HDR turned on for a game is still on: restoring the previous mode"));
     }
 
     public bool HasPendingRevert
@@ -121,8 +121,9 @@ public sealed class AutoHdrEngine
             {
                 suspended = ProcessUtil.Suspend(pid);
                 Log.Info(suspended
-                    ? $"«{game.Name}» приостановлена до включения HDR"
-                    : $"«{game.Name}» не приостановлена: нет прав или процесс запущен другим пользователем");
+                    ? Loc.T($"«{game.Name}» приостановлена до включения HDR", $"“{game.Name}” is on hold until HDR is on")
+                    : Loc.T($"«{game.Name}» не приостановлена: нет прав или процесс запущен другим пользователем",
+                        $"“{game.Name}” is not on hold: no rights, or the process belongs to another user"));
             }
 
             await switchLock.WaitAsync();
@@ -153,9 +154,9 @@ public sealed class AutoHdrEngine
 
                 bool confirmed = await HdrControl.WaitForStateAsync(switched, true, ConfirmTimeout);
                 var names = string.Join(", ", toEnable.Where(d => switched.Contains(d.Key)).Select(d => d.Name));
-                if (confirmed) Log.Info($"HDR включён для «{game.Name}» на: {names}");
-                else Log.Warn($"HDR на {names} не подтвердился за {ConfirmTimeout.TotalSeconds:0} с");
-                Notify?.Invoke("HDR включён", game.Name);
+                if (confirmed) Log.Info(Loc.T($"HDR включён для «{game.Name}» на: {names}", $"HDR turned on for “{game.Name}” on: {names}"));
+                else Log.Warn(Loc.T($"HDR на {names} не подтвердился за {ConfirmTimeout.TotalSeconds:0} с", $"HDR on {names} not confirmed within {ConfirmTimeout.TotalSeconds:0} s"));
+                Notify?.Invoke(Loc.T("HDR включён", "HDR on"), game.Name);
             }
             finally
             {
@@ -164,14 +165,14 @@ public sealed class AutoHdrEngine
         }
         catch (Exception ex)
         {
-            Log.Error($"Не удалось включить HDR для «{game.Name}»", ex);
+            Log.Error(Loc.T($"Не удалось включить HDR для «{game.Name}»", $"Could not turn HDR on for “{game.Name}”"), ex);
         }
         finally
         {
             if (suspended)
             {
                 ProcessUtil.Resume(pid);
-                Log.Info($"«{game.Name}» продолжает запуск");
+                Log.Info(Loc.T($"«{game.Name}» продолжает запуск", $"“{game.Name}” continues launching"));
             }
             StateChanged?.Invoke();
         }
@@ -232,13 +233,14 @@ public sealed class AutoHdrEngine
 
             if (toDisable.Count > 0)
             {
-                Log.Info($"HDR выключен на: {string.Join(", ", toDisable.Select(d => d.Name))}");
-                Notify?.Invoke("HDR выключен", "Игра закрыта");
+                var names = string.Join(", ", toDisable.Select(d => d.Name));
+                Log.Info(Loc.T($"HDR выключен на: {names}", $"HDR turned off on: {names}"));
+                Notify?.Invoke(Loc.T("HDR выключен", "HDR off"), Loc.T("Игра закрыта", "Game closed"));
             }
         }
         catch (Exception ex)
         {
-            Log.Error("Не удалось вернуть прежний режим HDR", ex);
+            Log.Error(Loc.T("Не удалось вернуть прежний режим HDR", "Could not restore the previous HDR mode"), ex);
         }
         finally
         {

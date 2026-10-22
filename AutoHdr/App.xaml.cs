@@ -57,13 +57,13 @@ public partial class App : Application
         base.OnStartup(e);
         DispatcherUnhandledException += (_, ex) =>
         {
-            Log.Error("Необработанная ошибка", ex.Exception);
+            Log.Error(Loc.T("Необработанная ошибка", "Unhandled error"), ex.Exception);
             ex.Handled = true;
         };
-        AppDomain.CurrentDomain.UnhandledException += (_, ex) => Log.Error("Критическая ошибка", ex.ExceptionObject as Exception);
+        AppDomain.CurrentDomain.UnhandledException += (_, ex) => Log.Error(Loc.T("Критическая ошибка", "Fatal error"), ex.ExceptionObject as Exception);
         TaskScheduler.UnobservedTaskException += (_, ex) =>
         {
-            Log.Error("Ошибка фоновой задачи", ex.Exception);
+            Log.Error(Loc.T("Ошибка фоновой задачи", "Background task error"), ex.Exception);
             ex.SetObserved();
         };
 
@@ -77,6 +77,7 @@ public partial class App : Application
 
         StartupTrace.Mark("single instance ok");
         Settings = AppSettings.Load();
+        Loc.Use(Settings.Language);
         Monitors = MonitorRegistry.Load();
         Games = GameStore.Load();
         Monitors.Sync(HdrControl.GetDisplays());
@@ -106,7 +107,8 @@ public partial class App : Application
         Watcher.Exited += Engine.OnExited;
         Watcher.Start();
         StartupTrace.Mark("watcher started");
-        Log.Info($"Auto HDR запущен. Права администратора: {(Elevation.IsElevated ? "есть" : "нет")}");
+        Log.Info(Loc.T($"Auto HDR запущен. Права администратора: {(Elevation.IsElevated ? "есть" : "нет")}",
+            $"Auto HDR started. Administrator rights: {(Elevation.IsElevated ? "yes" : "no")}"));
 
         SystemEvents.DisplaySettingsChanged += (_, _) => Dispatcher.BeginInvoke(RefreshHdrState);
         stateTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
@@ -144,7 +146,7 @@ public partial class App : Application
         catch (Exception ex)
         {
             // Мьютекс создан копией, к которой нет доступа: значит, она уже работает
-            Log.Error("Auto HDR уже запущен", ex);
+            Log.Error(Loc.T("Auto HDR уже запущен", "Auto HDR is already running"), ex);
             InstanceSignals.Signal(InstanceSignals.ShowEventName);
             return false;
         }
@@ -184,7 +186,35 @@ public partial class App : Application
         if (Settings.TrayHintShown) return;
         Settings.TrayHintShown = true;
         Settings.Save();
-        tray?.ShowBalloon("Auto HDR работает в фоне", "Значок в трее открывает окно и меню");
+        tray?.ShowBalloon(Loc.T("Auto HDR работает в фоне", "Auto HDR keeps running in the background"),
+            Loc.T("Значок в трее открывает окно и меню", "The tray icon opens the window and the menu"));
+    }
+
+    /// <summary>Сменить язык: окно пересоздаётся на том же месте и на той же вкладке, меню трея получает новые подписи.</summary>
+    public void SetLanguage(string? language)
+    {
+        Settings.Language = language;
+        Settings.Save();
+        Loc.Use(language);
+        tray?.ApplyTexts();
+        if (window is { } old)
+        {
+            var bounds = old.WindowState == WindowState.Normal ? new Rect(old.Left, old.Top, old.Width, old.Height) : old.RestoreBounds;
+            window = new MainWindow(this)
+            {
+                WindowStartupLocation = WindowStartupLocation.Manual,
+                Left = bounds.Left,
+                Top = bounds.Top,
+                Width = bounds.Width,
+                Height = bounds.Height,
+            };
+            window.Tabs.SelectedIndex = old.Tabs.SelectedIndex;
+            bool visible = old.IsVisible, maximized = old.WindowState == WindowState.Maximized;
+            old.CloseForExit();
+            if (visible) ShowMainWindow();
+            if (maximized) window.WindowState = WindowState.Maximized;
+        }
+        RefreshHdrState();
     }
 
     // ---------------- Состояние HDR ----------------
@@ -217,12 +247,13 @@ public partial class App : Application
             bool on = !targets.Any(d => d.HdrOn);
             var changed = targets.Where(d => d.HdrOn != on && HdrControl.SetHdr(d, on)).Select(d => d.Key).ToList();
             if (!on) Engine?.ForgetPending(changed);
-            Log.Info($"HDR {(on ? "включён" : "выключен")} вручную: {string.Join(", ", targets.Select(d => d.Name))}");
+            var names = string.Join(", ", targets.Select(d => d.Name));
+            Log.Info(Loc.T($"HDR {(on ? "включён" : "выключен")} вручную: {names}", $"HDR turned {(on ? "on" : "off")} manually: {names}"));
             if (changed.Count > 0) await HdrControl.WaitForStateAsync(changed, on, TimeSpan.FromSeconds(6));
         }
         catch (Exception ex)
         {
-            Log.Error("Не удалось переключить HDR", ex);
+            Log.Error(Loc.T("Не удалось переключить HDR", "Could not switch HDR"), ex);
         }
         RefreshHdrState();
     }
@@ -231,7 +262,8 @@ public partial class App : Application
     {
         Settings.Paused = paused;
         Settings.Save();
-        Log.Info(paused ? "Автопереключение HDR приостановлено" : "Автопереключение HDR снова работает");
+        Log.Info(paused ? Loc.T("Автопереключение HDR приостановлено", "Automatic HDR switching paused")
+            : Loc.T("Автопереключение HDR снова работает", "Automatic HDR switching resumed"));
         RefreshHdrState();
         window?.LoadSettings();
     }
@@ -240,7 +272,7 @@ public partial class App : Application
 
     async Task StartupScanAsync()
     {
-        if (Games.Games.Count == 0) Log.Info("Первый запуск: поиск игр в библиотеках");
+        if (Games.Games.Count == 0) Log.Info(Loc.T("Первый запуск: поиск игр в библиотеках", "First run: searching libraries for games"));
         await ScanLibrariesAsync();
     }
 
@@ -248,19 +280,19 @@ public partial class App : Application
     {
         if (scanning) return;
         scanning = true;
-        SetBusy("Поиск игр в библиотеках…", indeterminate: true);
+        SetBusy(Loc.T("Поиск игр в библиотеках…", "Searching libraries for games…"), indeterminate: true);
         try
         {
             var folders = Settings.CustomFolders.ToList();
             var result = await Task.Run(() => LibraryScanner.ScanAll(folders));
             var merge = Games.Merge(result.Games, result.Sources, Settings.IgnoredIds);
             Games.Save();
-            Log.Info($"Найдено игр: {merge.Found}, новых: {merge.Added}" +
-                     (merge.Removed > 0 ? $", больше не установлены: {merge.Removed}" : ""));
+            Log.Info(Loc.T($"Найдено игр: {merge.Found}, новых: {merge.Added}", $"Games found: {merge.Found}, new: {merge.Added}") +
+                     (merge.Removed > 0 ? Loc.T($", больше не установлены: {merge.Removed}", $", no longer installed: {merge.Removed}") : ""));
         }
         catch (Exception ex)
         {
-            Log.Error("Ошибка при поиске игр", ex);
+            Log.Error(Loc.T("Ошибка при поиске игр", "Game search failed"), ex);
         }
         finally
         {
@@ -290,8 +322,8 @@ public partial class App : Application
         Settings.Save();
         Games.Save();
         Log.Info(found.Count == 0
-            ? $"В папке {dir} игр не найдено"
-            : $"Папка {dir}: найдено игр {found.Count}, новых {added}");
+            ? Loc.T($"В папке {dir} игр не найдено", $"No games found in {dir}")
+            : Loc.T($"Папка {dir}: найдено игр {found.Count}, новых {added}", $"Folder {dir}: games found {found.Count}, new {added}"));
         await RefreshHdrInfoAsync(force: false);
     }
 
@@ -300,7 +332,7 @@ public partial class App : Application
         var game = LibraryScanner.FromExe(exePath);
         var stored = Games.AddOrGet(game);
         Games.Save();
-        if (ReferenceEquals(stored, game)) Log.Info($"Добавлена игра «{game.Name}»: {game.ExePath}");
+        if (ReferenceEquals(stored, game)) Log.Info(Loc.T($"Добавлена игра «{game.Name}»: {game.ExePath}", $"Added game “{game.Name}”: {game.ExePath}"));
         await RefreshHdrInfoAsync(force: false, only: [stored]);
     }
 
@@ -310,7 +342,7 @@ public partial class App : Application
         {
             if (game.Source == GameSources.Folder && !Settings.IgnoredIds.Contains(game.Id)) Settings.IgnoredIds.Add(game.Id);
             Games.Remove(game);
-            Log.Info($"Игра «{game.Name}» убрана из списка");
+            Log.Info(Loc.T($"Игра «{game.Name}» убрана из списка", $"Game “{game.Name}” removed from the list"));
         }
         Settings.Save();
         Games.Save();
@@ -329,10 +361,10 @@ public partial class App : Application
         if (list.Count == 0) return;
 
         hdrRefreshRunning = true;
-        SetBusy($"Проверка поддержки HDR: 0 из {list.Count}", indeterminate: false);
+        SetBusy(Loc.T($"Проверка поддержки HDR: 0 из {list.Count}", $"Checking HDR support: 0 of {list.Count}"), indeterminate: false);
         var progress = new Progress<(int Done, int Total)>(p =>
         {
-            Status.BusyText = $"Проверка поддержки HDR: {p.Done} из {p.Total}";
+            Status.BusyText = Loc.T($"Проверка поддержки HDR: {p.Done} из {p.Total}", $"Checking HDR support: {p.Done} of {p.Total}");
             Status.Progress = p.Total == 0 ? 0 : (double)p.Done / p.Total;
         });
 
@@ -340,14 +372,14 @@ public partial class App : Application
         {
             await HdrInfo.RefreshAsync(list, Settings.OnlineHdrInfo, a => Dispatcher.Invoke(a), progress);
             Games.Save();
-            Log.Info($"Проверка HDR: есть — {list.Count(g => g.Hdr == HdrSupport.Yes)}, " +
-                     $"возможно — {list.Count(g => g.Hdr == HdrSupport.Maybe)}, " +
-                     $"нет — {list.Count(g => g.Hdr == HdrSupport.No)}, " +
-                     $"неизвестно — {list.Count(g => g.Hdr == HdrSupport.Unknown)}");
+            int yes = list.Count(g => g.Hdr == HdrSupport.Yes), maybe = list.Count(g => g.Hdr == HdrSupport.Maybe);
+            int no = list.Count(g => g.Hdr == HdrSupport.No), unknown = list.Count(g => g.Hdr == HdrSupport.Unknown);
+            Log.Info(Loc.T($"Проверка HDR: есть — {yes}, возможно — {maybe}, нет — {no}, неизвестно — {unknown}",
+                $"HDR check: yes {yes}, maybe {maybe}, no {no}, unknown {unknown}"));
         }
         catch (Exception ex)
         {
-            Log.Error("Ошибка проверки поддержки HDR", ex);
+            Log.Error(Loc.T("Ошибка проверки поддержки HDR", "HDR support check failed"), ex);
         }
         finally
         {
@@ -394,14 +426,14 @@ public partial class App : Application
         }
         catch (Exception ex)
         {
-            Log.Error("Не удалось вернуть HDR при выходе", ex);
+            Log.Error(Loc.T("Не удалось вернуть HDR при выходе", "Could not restore HDR on exit"), ex);
         }
 
         Games.Save();
         Settings.Save();
         tray?.Dispose();
         window?.CloseForExit();
-        Log.Info("Auto HDR закрыт");
+        Log.Info(Loc.T("Auto HDR закрыт", "Auto HDR closed"));
         showEvent?.Set();
         exitEvent?.Set();
         try { instanceMutex?.ReleaseMutex(); } catch { }

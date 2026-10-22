@@ -70,9 +70,9 @@ public sealed partial class MonitorRegistry
                     data.Monitors.Add(record);
                     if (record.AutoHdr) data.Initialized = true;
                     changed = true;
-                    Log.Info(record.AutoHdr ? $"Монитор «{d.Name}» добавлен, авто-HDR включён"
-                        : tv ? $"«{d.Name}» похож на телевизор: добавлен с выключенным авто-HDR"
-                        : $"Дисплей «{d.Name}» ({d.Connection}) добавлен с выключенным авто-HDR");
+                    Log.Info(record.AutoHdr ? Loc.T($"Монитор «{d.Name}» добавлен, авто-HDR включён", $"Display “{d.Name}” added, auto HDR on")
+                        : tv ? Loc.T($"«{d.Name}» похож на телевизор: добавлен с выключенным авто-HDR", $"“{d.Name}” looks like a TV: added with auto HDR off")
+                        : Loc.T($"Дисплей «{d.Name}» ({d.Connection}) добавлен с выключенным авто-HDR", $"Display “{d.Name}” ({d.Connection}) added with auto HDR off"));
                 }
 
                 if (record.Key != d.Key || record.Name != d.Name || record.EdidId != d.EdidId
@@ -105,7 +105,7 @@ public sealed partial class MonitorRegistry
             record.AutoHdr = on;
             data.Initialized = true; // пользователь сам выбрал мониторы: новые больше не включаются сами
             SaveLocked();
-            Log.Info($"Авто-HDR для «{record.Name}» {(on ? "включён" : "выключен")}");
+            Log.Info(Loc.T($"Авто-HDR для «{record.Name}» {(on ? "включён" : "выключен")}", $"Auto HDR for “{record.Name}” turned {(on ? "on" : "off")}"));
         }
         Changed?.Invoke();
     }
@@ -142,6 +142,6 @@ public sealed partial class MonitorRegistry
     void SaveLocked()
     {
         try { JsonStore.Save(AppPaths.MonitorsFile, data); }
-        catch (Exception ex) { Log.Error("Не удалось сохранить список мониторов", ex); }
+        catch (Exception ex) { Log.Error(Loc.T("Не удалось сохранить список мониторов", "Could not save the display list"), ex); }
     }
 }

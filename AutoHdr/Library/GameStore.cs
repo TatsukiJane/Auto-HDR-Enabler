@@ -41,7 +41,7 @@ public sealed class GameStore
         lock (saveGate)
         {
             try { JsonStore.Save(AppPaths.GamesFile, snapshot.ToList()); }
-            catch (Exception ex) { Log.Error("Не удалось сохранить список игр", ex); }
+            catch (Exception ex) { Log.Error(Loc.T("Не удалось сохранить список игр", "Could not save the game list"), ex); }
         }
     }
 

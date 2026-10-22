@@ -19,7 +19,7 @@ Auto HDR — приложение в трее для Windows 11: включае�
 | Что | Команда |
 |---|---|
 | Проверить, что код компилируется | `dotnet build AutoHdr/AutoHdr.csproj -c Debug` |
-| Собрать релизный exe | `powershell -ExecutionPolicy Bypass -File build.ps1` → `dist\AutoHdr.exe` |
+| Собрать релизный exe | `powershell -ExecutionPolicy Bypass -File build.ps1` → `dist\AutoHdr.exe` и `*_cor3.dll` |
 | Нарисовать вкладки окна в PNG | `AutoHdr.exe --data <папка> --snapshot <папка>` |
 | Прочитать состояние HDR | `AutoHdr.exe --data <папка> --hdr status` |
 
@@ -51,7 +51,9 @@ Auto HDR — приложение в трее для Windows 11: включае�
 
 ## Конвенции
 
-- Интерфейс, журнал, комментарии и документация — на русском.
+- Интерфейс и журнал — на русском и английском: каждая строка парой `Loc.T("…", "…")`, в XAML `{ui:Tr '…', '…'}`.
+  Комментарии и документация — на русском. В конце строк интерфейса точку не ставим.
+- Репозиторий публичный, лицензия PolyForm Strict 1.0.0. Как выпустить релиз — в CLAUDE.md, раздел «Релиз».
 - C#: 4 пробела, file-scoped namespace, `Nullable` включён, коллекции через `[]`.
 - Данные приложения — JSON в `%LOCALAPPDATA%\AutoHdr`, запись через `JsonStore` (атомарно, через `.tmp`).
 - Скрипты `.ps1` с кириллицей сохранять в UTF-8 с BOM: Windows PowerShell 5.1 иначе читает их неверно.

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows;
@@ -39,21 +40,21 @@ public partial class MainWindow : Window
         ApplyDefaultSort();
         GamesGrid.ItemsSource = gamesView;
         GamesGrid.Sorting += (_, _) => gamesView.SortDescriptions.Clear();
-        app.Games.Games.CollectionChanged += (_, _) => Dispatcher.BeginInvoke(UpdateCounts);
+        app.Games.Games.CollectionChanged += OnGamesChanged;
         UpdateCounts();
 
         MonitorsGrid.ItemsSource = monitorRows;
-        app.Monitors.Changed += () => Dispatcher.BeginInvoke(RefreshMonitors);
+        app.Monitors.Changed += OnMonitorsChanged;
         RefreshMonitors();
 
         JournalBox.Text = string.Join(Environment.NewLine, Log.Snapshot()) + Environment.NewLine;
-        Log.LineAdded += line => Dispatcher.BeginInvoke(() => AppendJournal(line));
+        Log.LineAdded += OnLogLine;
         Loaded += (_, _) => JournalBox.ScrollToEnd();
 
         // Копия из Program Files не меняет путь при пересборке и есть, пока включён или был включён автозапуск
         var launcher = File.Exists(AppPaths.InstalledExe) ? AppPaths.InstalledExe : AppPaths.ExePath;
         LaunchCommandBox.Text = $"\"{launcher}\" --launch %command%";
-        VersionText.Text = $"Auto HDR {typeof(MainWindow).Assembly.GetName().Version?.ToString(3)} · данные: {AppPaths.DataDir}";
+        VersionText.Text = $"Auto HDR {typeof(MainWindow).Assembly.GetName().Version?.ToString(3)} · {Loc.T("данные", "data")}: {AppPaths.DataDir}";
         LoadSettings();
     }
 
@@ -104,7 +105,9 @@ public partial class MainWindow : Window
     void UpdateCounts()
     {
         var installed = app.Games.Games.Where(g => !g.Missing).ToList();
-        CountText.Text = installed.Count == 0 ? "" : $"Игр: {installed.Count} · с авто-HDR: {installed.Count(g => g.Enabled)}";
+        int enabled = installed.Count(g => g.Enabled);
+        CountText.Text = installed.Count == 0 ? ""
+            : Loc.T($"Игр: {installed.Count} · с авто-HDR: {enabled}", $"Games: {installed.Count} · with auto HDR: {enabled}");
         EmptyState.Visibility = app.Games.Games.Count == 0 && !app.Status.IsBusy ? Visibility.Visible : Visibility.Collapsed;
     }
 
@@ -135,8 +138,8 @@ public partial class MainWindow : Window
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Выберите exe игры",
-            Filter = "Программы (*.exe)|*.exe",
+            Title = Loc.T("Выберите exe игры", "Select the game exe"),
+            Filter = Loc.T("Программы (*.exe)|*.exe", "Programs (*.exe)|*.exe"),
             CheckFileExists = true,
         };
         if (dialog.ShowDialog(this) != true) return;
@@ -146,7 +149,7 @@ public partial class MainWindow : Window
 
     async void AddFolder_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new OpenFolderDialog { Title = "Папка с игрой или с несколькими играми" };
+        var dialog = new OpenFolderDialog { Title = Loc.T("Папка с игрой или с несколькими играми", "Folder with a game or several games") };
         if (dialog.ShowDialog(this) != true) return;
         await app.AddFolderAsync(dialog.FolderName);
         RefreshGamesView();
@@ -182,7 +185,8 @@ public partial class MainWindow : Window
         if (custom.Count == 0)
         {
             MessageBox.Show(this,
-                "Игры из библиотек остаются в списке, пока установлены. Чтобы HDR для них не включался, снимите флажок «Авто-HDR»",
+                Loc.T("Игры из библиотек остаются в списке, пока установлены. Чтобы HDR для них не включался, снимите флажок «Авто-HDR»",
+                    "Library games stay in the list while they are installed. To keep HDR off for them, clear the “Auto HDR” checkbox"),
                 "Auto HDR", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
@@ -249,8 +253,8 @@ public partial class MainWindow : Window
             var display = displays.FirstOrDefault(d => d.Key == record.Key);
             row.Name = record.Name;
             // У виртуального дисплея тип подключения и так «Виртуальный»: показываем один раз
-            var connection = record.IsVirtual ? "Виртуальный дисплей" : record.Connection;
-            var kind = !record.IsVirtual && MonitorRegistry.LooksLikeTv(record.Name) ? "телевизор" : null;
+            var connection = record.IsVirtual ? Loc.T("Виртуальный дисплей", "Virtual display") : record.Connection;
+            var kind = !record.IsVirtual && MonitorRegistry.LooksLikeTv(record.Name) ? Loc.T("телевизор", "TV") : null;
             row.Details = string.Join(" · ", new[] { connection, record.EdidId, kind }.Where(s => !string.IsNullOrEmpty(s)));
             row.Connected = display != null;
             row.HdrSupported = display?.HdrSupported ?? record.HdrSupported;
@@ -287,6 +291,7 @@ public partial class MainWindow : Window
             ExitDelayBox.Text = s.ExitDelaySec.ToString();
             NotifyCheck.IsChecked = s.Notifications;
             OnlineCheck.IsChecked = s.OnlineHdrInfo;
+            LanguageBox.SelectedIndex = s.Language switch { "ru" => 1, "en" => 2, _ => 0 };
 
             ElevateButton.Visibility = TrackingText.Visibility = Elevation.IsElevated ? Visibility.Collapsed : Visibility.Visible;
         }
@@ -315,7 +320,7 @@ public partial class MainWindow : Window
             bool installed = await Task.Run(TaskInstaller.IsInstalled);
             AutostartCheck.IsChecked = installed;
             if (!ok && installed != want)
-                AutostartHint.Text = "Не получилось изменить автозапуск: нужны права администратора";
+                AutostartHint.Text = Loc.T("Не получилось изменить автозапуск: нужны права администратора", "Could not change autostart: administrator rights are needed");
         }
         finally
         {
@@ -350,6 +355,14 @@ public partial class MainWindow : Window
         app.Settings.Save();
     }
 
+    void Language_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (loadingSettings) return;
+        string? language = LanguageBox.SelectedIndex switch { 1 => "ru", 2 => "en", _ => null };
+        // Окно пересоздаётся на новом языке: не закрываем его посреди его же обработчика
+        Dispatcher.BeginInvoke(() => app.SetLanguage(language));
+    }
+
     void ExitDelay_Changed(object sender, RoutedEventArgs e)
     {
         if (loadingSettings) return;
@@ -372,7 +385,7 @@ public partial class MainWindow : Window
     void CopyLaunch_Click(object sender, RoutedEventArgs e)
     {
         try { Clipboard.SetText(LaunchCommandBox.Text); }
-        catch (Exception ex) { Log.Error("Не удалось скопировать в буфер обмена", ex); }
+        catch (Exception ex) { Log.Error(Loc.T("Не удалось скопировать в буфер обмена", "Could not copy to the clipboard"), ex); }
     }
 
     void OpenDataDir_Click(object sender, RoutedEventArgs e) => OpenUnelevated(AppPaths.DataDir);
@@ -406,7 +419,20 @@ public partial class MainWindow : Window
     {
         var explorer = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "explorer.exe");
         try { Process.Start(new ProcessStartInfo(explorer, $"\"{target}\"") { UseShellExecute = false }); }
-        catch (Exception ex) { Log.Error($"Не удалось открыть {target}", ex); }
+        catch (Exception ex) { Log.Error(Loc.T($"Не удалось открыть {target}", $"Could not open {target}"), ex); }
+    }
+
+    void OnGamesChanged(object? sender, NotifyCollectionChangedEventArgs e) => Dispatcher.BeginInvoke(UpdateCounts);
+    void OnMonitorsChanged() => Dispatcher.BeginInvoke(RefreshMonitors);
+    void OnLogLine(string line) => Dispatcher.BeginInvoke(() => AppendJournal(line));
+
+    // При смене языка окно пересоздаётся: закрытое не должно держаться за события приложения
+    protected override void OnClosed(EventArgs e)
+    {
+        app.Games.Games.CollectionChanged -= OnGamesChanged;
+        app.Monitors.Changed -= OnMonitorsChanged;
+        Log.LineAdded -= OnLogLine;
+        base.OnClosed(e);
     }
 
     protected override void OnClosing(CancelEventArgs e)

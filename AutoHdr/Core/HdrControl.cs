@@ -65,7 +65,7 @@ public static class HdrControl
 
         var friendly = named && !string.IsNullOrWhiteSpace(name.MonitorFriendlyDeviceName)
             ? name.MonitorFriendlyDeviceName.Trim()
-            : $"Дисплей {index}";
+            : Loc.T($"Дисплей {index}", $"Display {index}");
         var key = named && !string.IsNullOrWhiteSpace(name.MonitorDevicePath)
             ? name.MonitorDevicePath
             : $"target:{target.AdapterId.Value:X}:{target.Id}";
@@ -120,7 +120,8 @@ public static class HdrControl
             request.Header.Type = DeviceInfoType.SetAdvancedColorState;
             result = DisplayConfigSetDeviceInfo(ref request);
         }
-        if (result != 0) Log.Warn($"Не удалось {(on ? "включить" : "выключить")} HDR на «{display.Name}», код {result}");
+        if (result != 0) Log.Warn(Loc.T($"Не удалось {(on ? "включить" : "выключить")} HDR на «{display.Name}», код {result}",
+            $"Could not turn HDR {(on ? "on" : "off")} on “{display.Name}”, code {result}"));
         return result == 0;
     }
 
@@ -170,12 +171,12 @@ public static class HdrControl
         6 => "LVDS",
         9 => "SDI",
         10 => "DisplayPort",
-        11 => "DisplayPort, встроенный",
+        11 => Loc.T("DisplayPort, встроенный", "DisplayPort, internal"),
         12 => "UDI",
-        13 => "UDI, встроенный",
+        13 => Loc.T("UDI, встроенный", "UDI, internal"),
         15 => "Miracast",
-        OutputIndirectWired or OutputIndirectVirtual => "Виртуальный",
-        0x80000000 => "Встроенный экран",
-        _ => "Другое",
+        OutputIndirectWired or OutputIndirectVirtual => Loc.T("Виртуальный", "Virtual"),
+        0x80000000 => Loc.T("Встроенный экран", "Built-in screen"),
+        _ => Loc.T("Другое", "Other"),
     };
 }

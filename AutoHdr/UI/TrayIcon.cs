@@ -10,8 +10,7 @@ namespace AutoHdr.UI;
 public sealed class TrayIcon : IDisposable
 {
     readonly Forms.NotifyIcon icon;
-    readonly Forms.ToolStripMenuItem toggleItem;
-    readonly Forms.ToolStripMenuItem pauseItem;
+    readonly Forms.ToolStripMenuItem openItem, toggleItem, pauseItem, exitItem;
     readonly Icon hdrIcon, sdrIcon, pausedIcon;
 
     public TrayIcon(App app)
@@ -23,14 +22,15 @@ public sealed class TrayIcon : IDisposable
         sdrIcon = IconFactory.Badge("SDR", Color.FromArgb(107, 114, 128), Color.White, size);
         pausedIcon = IconFactory.Badge("II", Color.FromArgb(75, 85, 99), Color.FromArgb(229, 231, 235), size);
 
-        var open = new Forms.ToolStripMenuItem("Открыть Auto HDR", null, (_, _) => app.ShowMainWindow());
-        open.Font = new Font(open.Font, System.Drawing.FontStyle.Bold);
-        toggleItem = new Forms.ToolStripMenuItem("Включить HDR", null, async (_, _) => await app.ToggleHdrAsync());
-        pauseItem = new Forms.ToolStripMenuItem("Пауза автопереключения", null, (_, _) => app.SetPaused(!app.Settings.Paused));
-        var exit = new Forms.ToolStripMenuItem("Выйти", null, (_, _) => app.ExitApp());
+        openItem = new Forms.ToolStripMenuItem("", null, (_, _) => app.ShowMainWindow());
+        openItem.Font = new Font(openItem.Font, System.Drawing.FontStyle.Bold);
+        toggleItem = new Forms.ToolStripMenuItem("", null, async (_, _) => await app.ToggleHdrAsync());
+        pauseItem = new Forms.ToolStripMenuItem("", null, (_, _) => app.SetPaused(!app.Settings.Paused));
+        exitItem = new Forms.ToolStripMenuItem("", null, (_, _) => app.ExitApp());
+        ApplyTexts();
 
         var menu = new Forms.ContextMenuStrip();
-        menu.Items.AddRange([open, new Forms.ToolStripSeparator(), toggleItem, pauseItem, new Forms.ToolStripSeparator(), exit]);
+        menu.Items.AddRange([openItem, new Forms.ToolStripSeparator(), toggleItem, pauseItem, new Forms.ToolStripSeparator(), exitItem]);
 
         icon = new Forms.NotifyIcon
         {
@@ -46,21 +46,30 @@ public sealed class TrayIcon : IDisposable
         icon.BalloonTipClicked += (_, _) => app.ShowMainWindow();
     }
 
+    /// <summary>Подписи меню на текущем языке. Переключатель HDR и подсказку значка потом уточняет <see cref="Update"/>.</summary>
+    public void ApplyTexts()
+    {
+        openItem.Text = Loc.T("Открыть Auto HDR", "Open Auto HDR");
+        toggleItem.Text = Loc.T("Включить HDR", "Turn HDR on");
+        pauseItem.Text = Loc.T("Пауза автопереключения", "Pause auto switching");
+        exitItem.Text = Loc.T("Выйти", "Exit");
+    }
+
     public void Update(bool? hdrOn, bool paused, IReadOnlyList<string> runningGames)
     {
         icon.Icon = paused ? pausedIcon : hdrOn == true ? hdrIcon : sdrIcon;
 
         var text = hdrOn switch
         {
-            true => "Auto HDR: HDR включён",
-            false => "Auto HDR: HDR выключен",
-            _ => "Auto HDR: нет мониторов с HDR",
+            true => Loc.T("Auto HDR: HDR включён", "Auto HDR: HDR on"),
+            false => Loc.T("Auto HDR: HDR выключен", "Auto HDR: HDR off"),
+            _ => Loc.T("Auto HDR: нет мониторов с HDR", "Auto HDR: no HDR displays"),
         };
-        if (paused) text += ", автопереключение на паузе";
-        else if (runningGames.Count > 0) text += $"\nИгра: {string.Join(", ", runningGames)}";
+        if (paused) text += Loc.T(", автопереключение на паузе", ", auto switching paused");
+        else if (runningGames.Count > 0) text += $"\n{Loc.T("Игра", "Game")}: {string.Join(", ", runningGames)}";
         icon.Text = text.Length > 127 ? text[..126] + "…" : text;
 
-        toggleItem.Text = hdrOn == true ? "Выключить HDR" : "Включить HDR";
+        toggleItem.Text = hdrOn == true ? Loc.T("Выключить HDR", "Turn HDR off") : Loc.T("Включить HDR", "Turn HDR on");
         toggleItem.Enabled = hdrOn != null;
         pauseItem.Checked = paused;
     }

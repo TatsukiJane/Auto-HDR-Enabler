@@ -28,7 +28,7 @@ public static partial class LibraryScanner
             catch (Exception ex)
             {
                 // Источник не отмечаем просканированным: его игры не пометятся как удалённые
-                Log.Error($"Не удалось просканировать {source}", ex);
+                Log.Error(Loc.T($"Не удалось просканировать {GameSources.Display(source)}", $"Could not scan {GameSources.Display(source)}"), ex);
             }
         }
 
@@ -181,7 +181,7 @@ public static partial class LibraryScanner
             }
             catch (Exception ex)
             {
-                Log.Warn($"Epic: не удалось прочитать {Path.GetFileName(file)}: {ex.Message}");
+                Log.Warn(Loc.T($"Epic: не удалось прочитать {Path.GetFileName(file)}: {ex.Message}", $"Epic: could not read {Path.GetFileName(file)}: {ex.Message}"));
             }
             if (game != null) yield return game;
         }

@@ -34,13 +34,18 @@ public static class TaskInstaller
         {
             if (!string.Equals(AppPaths.ExePath, exe, StringComparison.OrdinalIgnoreCase))
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(exe)!);
+                var target = Path.GetDirectoryName(exe)!;
+                Directory.CreateDirectory(target);
                 File.Copy(AppPaths.ExePath, exe, overwrite: true);
+                // Self-contained-сборка: родные библиотеки WPF лежат рядом с exe. Только они, а не всё подряд из папки загрузки:
+                // посторонняя DLL в Program Files загрузилась бы в процесс с правами администратора
+                foreach (var dll in Directory.GetFiles(Path.GetDirectoryName(AppPaths.ExePath)!, "*_cor3.dll"))
+                    File.Copy(dll, Path.Combine(target, Path.GetFileName(dll)), overwrite: true);
             }
         }
         catch (Exception ex)
         {
-            Log.Error($"Не удалось скопировать приложение в {Path.GetDirectoryName(exe)}", ex);
+            Log.Error(Loc.T($"Не удалось скопировать приложение в {Path.GetDirectoryName(exe)}", $"Could not copy the app to {Path.GetDirectoryName(exe)}"), ex);
             return -1;
         }
 
@@ -50,8 +55,8 @@ public static class TaskInstaller
         {
             File.WriteAllText(file, BuildXml(exe), Encoding.Unicode);
             int code = RunSchtasks($"/Create /TN \"{TaskName}\" /XML \"{file}\" /F");
-            if (code == 0) Log.Info("Автозапуск включён: задача планировщика создана");
-            else Log.Warn($"Не удалось создать задачу планировщика, код {code}");
+            if (code == 0) Log.Info(Loc.T("Автозапуск включён: задача планировщика создана", "Autostart on: scheduled task created"));
+            else Log.Warn(Loc.T($"Не удалось создать задачу планировщика, код {code}", $"Could not create the scheduled task, code {code}"));
             return code;
         }
         finally
@@ -63,7 +68,7 @@ public static class TaskInstaller
     public static int Uninstall()
     {
         int code = RunSchtasks($"/Delete /TN \"{TaskName}\" /F");
-        if (code == 0) Log.Info("Автозапуск выключен: задача планировщика удалена");
+        if (code == 0) Log.Info(Loc.T("Автозапуск выключен: задача планировщика удалена", "Autostart off: scheduled task removed"));
         return code;
     }
 
@@ -98,7 +103,7 @@ public static class TaskInstaller
             <?xml version="1.0" encoding="UTF-16"?>
             <Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
               <RegistrationInfo>
-                <Description>Auto HDR: включает HDR при запуске игр и возвращает SDR после выхода</Description>
+                <Description>{Loc.T("Auto HDR: включает HDR при запуске игр и возвращает SDR после выхода", "Auto HDR: turns HDR on when games start and back to SDR after they exit")}</Description>
               </RegistrationInfo>
               <Triggers>
                 <LogonTrigger>
@@ -163,7 +168,7 @@ public static class TaskInstaller
         }
         catch (Exception ex)
         {
-            Log.Error("Не удалось запустить schtasks", ex);
+            Log.Error(Loc.T("Не удалось запустить schtasks", "Could not run schtasks"), ex);
             return -1;
         }
     }

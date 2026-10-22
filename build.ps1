@@ -1,4 +1,4 @@
-﻿# Собирает dist\AutoHdr.exe. Нужен .NET 10 SDK.
+﻿# Собирает dist\AutoHdr.exe и родные библиотеки WPF рядом с ним. Нужен .NET 10 SDK.
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
 $dist = Join-Path $root 'dist'
@@ -18,8 +18,10 @@ if (Test-Path $dist) {
     if (Test-Path $dist) { throw "Не удалось очистить $dist" }
 }
 
-dotnet publish (Join-Path $root 'AutoHdr\AutoHdr.csproj') -c Release -r win-x64 --self-contained false `
-    -p:PublishSingleFile=true -p:DebugType=embedded -o $dist -nologo
+# Self-contained: на компьютере пользователя не нужен .NET. Родные библиотеки WPF (*_cor3.dll) остаются рядом с exe:
+# иначе их пришлось бы распаковывать в %TEMP%, куда пишет любой процесс пользователя
+dotnet publish (Join-Path $root 'AutoHdr\AutoHdr.csproj') -c Release -r win-x64 --self-contained true `
+    -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:DebugType=embedded -o $dist -nologo
 if ($LASTEXITCODE -ne 0) { throw "Сборка завершилась с ошибкой $LASTEXITCODE" }
 
 # Автозапуск работает с копией в Program Files: обновляем её и задачу (окно UAC)

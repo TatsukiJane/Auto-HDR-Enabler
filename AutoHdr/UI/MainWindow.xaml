@@ -37,7 +37,7 @@
     <TabControl x:Name="Tabs" Margin="12,8,12,12">
 
         <!-- ================= Игры ================= -->
-        <TabItem Header="Игры">
+        <TabItem Header="{ui:Tr 'Игры', 'Games'}">
             <DockPanel Margin="0,12,0,0">
                 <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
                     <Grid.ColumnDefinitions>
@@ -47,28 +47,28 @@
                         <ColumnDefinition Width="190" />
                     </Grid.ColumnDefinitions>
                     <StackPanel Orientation="Horizontal">
-                        <Button x:Name="ScanButton" Content="Найти игры" Style="{StaticResource ToolButton}" Click="Scan_Click"
-                                ToolTip="Steam, GOG, Epic, EA, Ubisoft, Xbox, Rockstar и добавленные папки" />
-                        <Button Content="Добавить игру" Style="{StaticResource ToolButton}" Click="AddExe_Click"
-                                ToolTip="Выбрать exe игры, которой нет в библиотеках" />
-                        <Button Content="Добавить папку" Style="{StaticResource ToolButton}" Click="AddFolder_Click"
-                                ToolTip="Папка с одной игрой или с несколькими играми в подпапках" />
-                        <Button x:Name="RecheckButton" Content="Проверить HDR заново" Style="{StaticResource ToolButton}" Click="Recheck_Click"
-                                ToolTip="Снова запросить Steam и PCGamingWiki для всех игр, даже недавно проверенных" />
+                        <Button x:Name="ScanButton" Content="{ui:Tr 'Найти игры', 'Find games'}" Style="{StaticResource ToolButton}" Click="Scan_Click"
+                                ToolTip="{ui:Tr 'Steam, GOG, Epic, EA, Ubisoft, Xbox, Rockstar и добавленные папки', 'Steam, GOG, Epic, EA, Ubisoft, Xbox, Rockstar and added folders'}" />
+                        <Button Content="{ui:Tr 'Добавить игру', 'Add game'}" Style="{StaticResource ToolButton}" Click="AddExe_Click"
+                                ToolTip="{ui:Tr 'Выбрать exe игры, которой нет в библиотеках', 'Pick the exe of a game that is not in any library'}" />
+                        <Button Content="{ui:Tr 'Добавить папку', 'Add folder'}" Style="{StaticResource ToolButton}" Click="AddFolder_Click"
+                                ToolTip="{ui:Tr 'Папка с одной игрой или с несколькими играми в подпапках', 'A folder with one game, or with several games in subfolders'}" />
+                        <Button x:Name="RecheckButton" Content="{ui:Tr 'Проверить HDR заново', 'Recheck HDR'}" Style="{StaticResource ToolButton}" Click="Recheck_Click"
+                                ToolTip="{ui:Tr 'Снова запросить Steam и PCGamingWiki для всех игр, даже недавно проверенных', 'Query Steam and PCGamingWiki again for all games, even recently checked ones'}" />
                     </StackPanel>
                     <Grid Grid.Column="2" Margin="0,0,8,0">
                         <TextBox x:Name="SearchBox" TextChanged="Search_Changed" VerticalContentAlignment="Center" />
-                        <TextBlock x:Name="SearchPlaceholder" Text="Поиск" IsHitTestVisible="False" Margin="12,0,0,0"
+                        <TextBlock x:Name="SearchPlaceholder" Text="{ui:Tr 'Поиск', 'Search'}" IsHitTestVisible="False" Margin="12,0,0,0"
                                    VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
                     </Grid>
                     <ComboBox x:Name="FilterBox" Grid.Column="3" SelectedIndex="0" SelectionChanged="Filter_Changed">
-                        <ComboBoxItem Content="Все игры" />
-                        <ComboBoxItem Content="С авто-HDR" />
-                        <ComboBoxItem Content="HDR: есть" />
-                        <ComboBoxItem Content="HDR: возможно" />
-                        <ComboBoxItem Content="HDR: нет" />
-                        <ComboBoxItem Content="Не проверены" />
-                        <ComboBoxItem Content="Не установлены" />
+                        <ComboBoxItem Content="{ui:Tr 'Все игры', 'All games'}" />
+                        <ComboBoxItem Content="{ui:Tr 'С авто-HDR', 'With auto HDR'}" />
+                        <ComboBoxItem Content="{ui:Tr 'HDR: есть', 'HDR: yes'}" />
+                        <ComboBoxItem Content="{ui:Tr 'HDR: возможно', 'HDR: maybe'}" />
+                        <ComboBoxItem Content="{ui:Tr 'HDR: нет', 'HDR: no'}" />
+                        <ComboBoxItem Content="{ui:Tr 'Не проверены', 'Not checked'}" />
+                        <ComboBoxItem Content="{ui:Tr 'Не установлены', 'Not installed'}" />
                     </ComboBox>
                 </Grid>
 
@@ -78,7 +78,7 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <TextBlock Style="{StaticResource Hint}" Margin="0,0,16,0"
-                               Text="Авто-HDR включается сам, если поддержку HDR подтвердили Steam или PCGamingWiki. «Ждать HDR» приостанавливает запуск игры, пока HDR не включится: это нужно играм, которые проверяют HDR в первые секунды" />
+                               Text="{ui:Tr 'Авто-HDR включается сам, если поддержку HDR подтвердили Steam или PCGamingWiki. «Ждать HDR» приостанавливает запуск игры, пока HDR не включится: это нужно играм, которые проверяют HDR в первые секунды', 'Auto HDR turns on by itself when Steam or PCGamingWiki confirms HDR support. “Wait for HDR” holds the game at launch until HDR is on: some games look for HDR only in the first seconds'}" />
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"
                                 Visibility="{Binding IsBusy, Converter={StaticResource Visible}}">
                         <ProgressBar Width="140" Height="4" Margin="0,0,10,0" Minimum="0" Maximum="1"
@@ -105,22 +105,22 @@
                             </Style>
                         </DataGrid.RowStyle>
                         <DataGrid.Columns>
-                            <DataGridTemplateColumn Header="Авто-HDR" Width="96" SortMemberPath="Enabled"
-                                                    ToolTipService.ToolTip="Включать HDR, пока игра запущена">
+                            <DataGridTemplateColumn Header="{ui:Tr 'Авто-HDR', 'Auto HDR'}" Width="96" SortMemberPath="Enabled"
+                                                    ToolTipService.ToolTip="{ui:Tr 'Включать HDR, пока игра запущена', 'Turn HDR on while the game is running'}">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <CheckBox IsChecked="{Binding EnabledUi, UpdateSourceTrigger=PropertyChanged}"
                                                   HorizontalAlignment="Center" MinWidth="0" Focusable="False"
-                                                  ToolTip="Включать HDR при запуске этой игры" />
+                                                  ToolTip="{ui:Tr 'Включать HDR при запуске этой игры', 'Turn HDR on when this game starts'}" />
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="Игра" Binding="{Binding Name}" IsReadOnly="True" Width="2*"
+                            <DataGridTextColumn Header="{ui:Tr 'Игра', 'Game'}" Binding="{Binding Name}" IsReadOnly="True" Width="2*"
                                                 ElementStyle="{StaticResource CellText}" />
-                            <DataGridTextColumn Header="Откуда" Binding="{Binding SourceText}" IsReadOnly="True" Width="110"
+                            <DataGridTextColumn Header="{ui:Tr 'Откуда', 'Source'}" Binding="{Binding SourceText}" IsReadOnly="True" Width="110"
                                                 SortMemberPath="Source" ElementStyle="{StaticResource CellText}" />
                             <DataGridTemplateColumn Header="HDR" Width="130" SortMemberPath="HdrSortKey"
-                                                    ToolTipService.ToolTip="Поддержка HDR по данным Steam, PCGamingWiki и файлов игры">
+                                                    ToolTipService.ToolTip="{ui:Tr 'Поддержка HDR по данным Steam, PCGamingWiki и файлов игры', 'HDR support according to Steam, PCGamingWiki and the game files'}">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Background="Transparent"
@@ -131,17 +131,17 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Header="Ждать HDR" Width="104" SortMemberPath="HoldUntilHdr"
-                                                    ToolTipService.ToolTip="Приостанавливать запуск игры, пока HDR не включится. Для онлайн-игр с античитом это рискованно">
+                            <DataGridTemplateColumn Header="{ui:Tr 'Ждать HDR', 'Wait for HDR'}" Width="124" SortMemberPath="HoldUntilHdr"
+                                                    ToolTipService.ToolTip="{ui:Tr 'Приостанавливать запуск игры, пока HDR не включится. Для онлайн-игр с античитом это рискованно', 'Hold the game at launch until HDR is on. Risky for online games with anti-cheat'}">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <CheckBox IsChecked="{Binding HoldUi, UpdateSourceTrigger=PropertyChanged}"
                                                   HorizontalAlignment="Center" MinWidth="0" Focusable="False"
-                                                  ToolTip="Приостанавливать запуск игры, пока HDR не включится" />
+                                                  ToolTip="{ui:Tr 'Приостанавливать запуск игры, пока HDR не включится', 'Hold the game at launch until HDR is on'}" />
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Header="Расположение" Width="3*" SortMemberPath="Location">
+                            <DataGridTemplateColumn Header="{ui:Tr 'Расположение', 'Location'}" Width="3*" SortMemberPath="Location">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding Location}" ToolTip="{Binding Location}" Style="{StaticResource CellText}" />
@@ -151,46 +151,46 @@
                         </DataGrid.Columns>
                         <DataGrid.ContextMenu>
                             <ContextMenu>
-                                <MenuItem Header="Открыть папку" Click="OpenFolder_Click" />
-                                <MenuItem Header="Открыть на PCGamingWiki" Click="OpenPcgw_Click" />
+                                <MenuItem Header="{ui:Tr 'Открыть папку', 'Open folder'}" Click="OpenFolder_Click" />
+                                <MenuItem Header="{ui:Tr 'Открыть на PCGamingWiki', 'Open on PCGamingWiki'}" Click="OpenPcgw_Click" />
                                 <Separator />
-                                <MenuItem Header="Проверить HDR заново" Click="RecheckSelected_Click" />
-                                <MenuItem Header="Сбросить ручную настройку авто-HDR" Click="ResetOverride_Click" />
+                                <MenuItem Header="{ui:Tr 'Проверить HDR заново', 'Recheck HDR'}" Click="RecheckSelected_Click" />
+                                <MenuItem Header="{ui:Tr 'Сбросить ручную настройку авто-HDR', 'Reset manual auto HDR choice'}" Click="ResetOverride_Click" />
                                 <Separator />
-                                <MenuItem Header="Убрать из списка" Click="Remove_Click" />
+                                <MenuItem Header="{ui:Tr 'Убрать из списка', 'Remove from list'}" Click="Remove_Click" />
                             </ContextMenu>
                         </DataGrid.ContextMenu>
                     </DataGrid>
 
                     <StackPanel x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed">
-                        <TextBlock Text="Игр пока нет" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                        <TextBlock Text="{ui:Tr 'Игр пока нет', 'No games yet'}" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" />
                         <TextBlock Style="{StaticResource Hint}" Margin="0,6,0,0" HorizontalAlignment="Center" TextAlignment="Center"
-                                   Text="Найдите игры в библиотеках или добавьте их вручную" />
+                                   Text="{ui:Tr 'Найдите игры в библиотеках или добавьте их вручную', 'Find games in your libraries or add them manually'}" />
                     </StackPanel>
                 </Grid>
             </DockPanel>
         </TabItem>
 
         <!-- ================= Мониторы ================= -->
-        <TabItem Header="Мониторы">
+        <TabItem Header="{ui:Tr 'Мониторы', 'Displays'}">
             <DockPanel Margin="0,12,0,0">
                 <TextBlock DockPanel.Dock="Top" Style="{StaticResource Hint}" FontSize="13" Margin="0,0,0,12"
-                           Text="HDR переключается только на отмеченных мониторах. Новые мониторы и телевизоры добавляются с выключенным авто-HDR" />
+                           Text="{ui:Tr 'HDR переключается только на отмеченных мониторах. Новые мониторы и телевизоры добавляются с выключенным авто-HDR', 'HDR is switched only on checked displays. New displays and TVs are added with auto HDR off'}" />
                 <DataGrid x:Name="MonitorsGrid" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
                           HeadersVisibility="Column" GridLinesVisibility="None" SelectionMode="Single" RowHeaderWidth="0"
                           CanUserSortColumns="False">
                     <DataGrid.Columns>
-                        <DataGridTemplateColumn Header="Авто-HDR" Width="96"
-                                                ToolTipService.ToolTip="Включать HDR на мониторе, пока запущена игра">
+                        <DataGridTemplateColumn Header="{ui:Tr 'Авто-HDR', 'Auto HDR'}" Width="96"
+                                                ToolTipService.ToolTip="{ui:Tr 'Включать HDR на мониторе, пока запущена игра', 'Turn HDR on for the display while a game is running'}">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <CheckBox IsChecked="{Binding AutoHdr, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding HdrSupported}"
                                               HorizontalAlignment="Center" MinWidth="0" Focusable="False"
-                                              ToolTip="Включать HDR на этом мониторе, пока запущена игра" />
+                                              ToolTip="{ui:Tr 'Включать HDR на этом мониторе, пока запущена игра', 'Turn HDR on for this display while a game is running'}" />
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTemplateColumn Header="Монитор" Width="2*">
+                        <DataGridTemplateColumn Header="{ui:Tr 'Монитор', 'Display'}" Width="2*">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel Margin="0,4">
@@ -200,18 +200,18 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTextColumn Header="Состояние" Binding="{Binding StateText}" IsReadOnly="True" Width="*"
+                        <DataGridTextColumn Header="{ui:Tr 'Состояние', 'Status'}" Binding="{Binding StateText}" IsReadOnly="True" Width="*"
                                             ElementStyle="{StaticResource CellText}" />
                         <DataGridTemplateColumn Header="" Width="Auto">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal" Margin="0,2" VerticalAlignment="Center">
-                                        <Button Content="Переключить HDR" Padding="10,4" Margin="0,0,8,0" Click="ToggleMonitor_Click"
-                                                ToolTip="Включить или выключить HDR прямо сейчас, без игры"
+                                        <Button Content="{ui:Tr 'Переключить HDR', 'Toggle HDR'}" Padding="10,4" Margin="0,0,8,0" Click="ToggleMonitor_Click"
+                                                ToolTip="{ui:Tr 'Включить или выключить HDR прямо сейчас, без игры', 'Turn HDR on or off right now, without a game'}"
                                                 Visibility="{Binding CanToggle, Converter={StaticResource Visible}}" />
-                                        <Button Content="Забыть" Padding="10,4" Click="ForgetMonitor_Click"
+                                        <Button Content="{ui:Tr 'Забыть', 'Forget'}" Padding="10,4" Click="ForgetMonitor_Click"
                                                 Visibility="{Binding CanForget, Converter={StaticResource Visible}}"
-                                                ToolTip="Убрать монитор из списка. Когда его подключат снова, он появится с выключенным авто-HDR" />
+                                                ToolTip="{ui:Tr 'Убрать монитор из списка. Когда его подключат снова, он появится с выключенным авто-HDR', 'Remove the display from the list. When it is connected again, it comes back with auto HDR off'}" />
                                     </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
@@ -222,65 +222,74 @@
         </TabItem>
 
         <!-- ================= Настройки ================= -->
-        <TabItem Header="Настройки">
+        <TabItem Header="{ui:Tr 'Настройки', 'Settings'}">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel Margin="0,0,16,16" MaxWidth="760" HorizontalAlignment="Left">
 
-                    <TextBlock Text="Основные" Style="{StaticResource SectionTitle}" />
-                    <CheckBox x:Name="AutoSwitchCheck" Content="Автопереключение HDR" Style="{StaticResource SettingCheck}"
+                    <TextBlock Text="{ui:Tr 'Основные', 'General'}" Style="{StaticResource SectionTitle}" />
+                    <CheckBox x:Name="AutoSwitchCheck" Content="{ui:Tr 'Автопереключение HDR', 'Switch HDR automatically'}" Style="{StaticResource SettingCheck}"
                               Checked="AutoSwitch_Changed" Unchecked="AutoSwitch_Changed" />
                     <TextBlock Style="{StaticResource Hint}" Margin="28,2,0,0"
-                               Text="Пауза тоже доступна в меню значка в трее" />
+                               Text="{ui:Tr 'Пауза тоже доступна в меню значка в трее', 'You can also pause it from the tray icon menu'}" />
 
-                    <CheckBox x:Name="AutostartCheck" Content="Автозапуск при входе в Windows" Style="{StaticResource SettingCheck}"
+                    <CheckBox x:Name="AutostartCheck" Content="{ui:Tr 'Автозапуск при входе в Windows', 'Start with Windows'}" Style="{StaticResource SettingCheck}"
                               Margin="0,14,0,0" Click="Autostart_Click" />
                     <TextBlock x:Name="AutostartHint" Style="{StaticResource Hint}" Margin="28,2,0,0"
-                               Text="Auto HDR запускается через планировщик заданий с правами администратора, без окна UAC" />
+                               Text="{ui:Tr 'Auto HDR запускается через планировщик заданий с правами администратора, без окна UAC', 'Auto HDR starts through Task Scheduler with administrator rights, without a UAC prompt'}" />
 
                     <TextBlock x:Name="TrackingText" Margin="0,14,0,0" TextWrapping="Wrap"
-                               Text="Без прав администратора «Ждать HDR» не сможет приостановить игру, запущенную с правами администратора" />
-                    <Button x:Name="ElevateButton" Content="Перезапустить с правами администратора" HorizontalAlignment="Left"
+                               Text="{ui:Tr 'Без прав администратора «Ждать HDR» не сможет приостановить игру, запущенную с правами администратора', 'Without administrator rights, “Wait for HDR” cannot hold a game that runs as administrator'}" />
+                    <Button x:Name="ElevateButton" Content="{ui:Tr 'Перезапустить с правами администратора', 'Restart as administrator'}" HorizontalAlignment="Left"
                             Padding="12,6" Margin="0,8,0,0" Click="Elevate_Click" />
 
-                    <TextBlock Text="После игры" Style="{StaticResource SectionTitle}" />
-                    <CheckBox x:Name="RestoreCheck" Content="Возвращать прежний режим после выхода из игры" Style="{StaticResource SettingCheck}"
+                    <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                        <TextBlock Text="{ui:Tr 'Язык', 'Language'}" VerticalAlignment="Center" />
+                        <ComboBox x:Name="LanguageBox" Width="200" Margin="12,0,0,0" SelectionChanged="Language_Changed">
+                            <ComboBoxItem Content="{ui:Tr 'Как в Windows', 'Same as Windows'}" />
+                            <ComboBoxItem Content="Русский" />
+                            <ComboBoxItem Content="English" />
+                        </ComboBox>
+                    </StackPanel>
+
+                    <TextBlock Text="{ui:Tr 'После игры', 'After the game'}" Style="{StaticResource SectionTitle}" />
+                    <CheckBox x:Name="RestoreCheck" Content="{ui:Tr 'Возвращать прежний режим после выхода из игры', 'Restore the previous mode after the game exits'}" Style="{StaticResource SettingCheck}"
                               Checked="Restore_Changed" Unchecked="Restore_Changed" />
-                    <CheckBox x:Name="ExitDelayCheck" Content="Задержка перед выключением HDR" Style="{StaticResource SettingCheck}"
+                    <CheckBox x:Name="ExitDelayCheck" Content="{ui:Tr 'Задержка перед выключением HDR', 'Delay before turning HDR off'}" Style="{StaticResource SettingCheck}"
                               Margin="0,14,0,0" Checked="ExitDelay_Changed" Unchecked="ExitDelay_Changed" />
                     <TextBlock Style="{StaticResource Hint}" Margin="28,2,0,0"
-                               Text="Включите, если HDR мигает, когда лаунчер передаёт управление игре или игра перезапускается" />
+                               Text="{ui:Tr 'Включите, если HDR мигает, когда лаунчер передаёт управление игре или игра перезапускается', 'Turn this on if HDR flickers when a launcher hands over to the game or the game restarts'}" />
                     <StackPanel Orientation="Horizontal" Margin="28,8,0,0"
                                 Visibility="{Binding IsChecked, ElementName=ExitDelayCheck, Converter={StaticResource Visible}}">
-                        <TextBlock Text="Время задержки" VerticalAlignment="Center" />
+                        <TextBlock Text="{ui:Tr 'Время задержки', 'Delay'}" VerticalAlignment="Center" />
                         <TextBox x:Name="ExitDelayBox" Width="72" Margin="12,0,8,0" TextAlignment="Right"
                                  TextChanged="ExitDelaySec_Changed" LostFocus="ExitDelaySec_LostFocus" />
-                        <TextBlock Text="с" VerticalAlignment="Center" />
+                        <TextBlock Text="{ui:Tr 'с', 's'}" VerticalAlignment="Center" />
                     </StackPanel>
-                    <CheckBox x:Name="NotifyCheck" Content="Уведомления о переключении HDR" Style="{StaticResource SettingCheck}"
+                    <CheckBox x:Name="NotifyCheck" Content="{ui:Tr 'Уведомления о переключении HDR', 'Notify when HDR switches'}" Style="{StaticResource SettingCheck}"
                               Margin="0,14,0,0" Checked="Notify_Changed" Unchecked="Notify_Changed" />
 
-                    <TextBlock Text="Поддержка HDR в играх" Style="{StaticResource SectionTitle}" />
-                    <CheckBox x:Name="OnlineCheck" Content="Проверять поддержку HDR в интернете" Style="{StaticResource SettingCheck}"
+                    <TextBlock Text="{ui:Tr 'Поддержка HDR в играх', 'HDR support in games'}" Style="{StaticResource SectionTitle}" />
+                    <CheckBox x:Name="OnlineCheck" Content="{ui:Tr 'Проверять поддержку HDR в интернете', 'Check HDR support online'}" Style="{StaticResource SettingCheck}"
                               Checked="Online_Changed" Unchecked="Online_Changed" />
                     <TextBlock Style="{StaticResource Hint}" Margin="28,2,0,0"
-                               Text="Данные берутся из Steam и PCGamingWiki. Без этой проверки остаётся только поиск упоминаний HDR в файлах игры" />
+                               Text="{ui:Tr 'Данные берутся из Steam и PCGamingWiki. Без этой проверки остаётся только поиск упоминаний HDR в файлах игры', 'Data comes from Steam and PCGamingWiki. Without it, only the game files are searched for HDR mentions'}" />
 
-                    <TextBlock Text="Параметры запуска в Steam" Style="{StaticResource SectionTitle}" />
+                    <TextBlock Text="{ui:Tr 'Параметры запуска в Steam', 'Steam launch options'}" Style="{StaticResource SectionTitle}" />
                     <TextBlock Style="{StaticResource Hint}" FontSize="13"
-                               Text="Нужны редко: если игра проверяет HDR в первые секунды и не находит его, вставьте строку в Steam → Свойства игры → Параметры запуска. Тогда HDR включится до старта игры" />
+                               Text="{ui:Tr 'Нужны редко: если игра проверяет HDR в первые секунды и не находит его, вставьте строку в Steam → Свойства игры → Параметры запуска. Тогда HDR включится до старта игры', 'Rarely needed: if a game looks for HDR in the first seconds and does not find it, paste this line into Steam → game Properties → Launch Options. HDR then turns on before the game starts'}" />
                     <Grid Margin="0,8,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <TextBox x:Name="LaunchCommandBox" IsReadOnly="True" FontFamily="Consolas" VerticalContentAlignment="Center" />
-                        <Button Grid.Column="1" Content="Скопировать" Padding="12,6" Margin="8,0,0,0" Click="CopyLaunch_Click" />
+                        <Button Grid.Column="1" Content="{ui:Tr 'Скопировать', 'Copy'}" Padding="12,6" Margin="8,0,0,0" Click="CopyLaunch_Click" />
                     </Grid>
 
-                    <TextBlock Text="Данные" Style="{StaticResource SectionTitle}" />
+                    <TextBlock Text="{ui:Tr 'Данные', 'Data'}" Style="{StaticResource SectionTitle}" />
                     <StackPanel Orientation="Horizontal">
-                        <Button Content="Открыть папку с данными" Style="{StaticResource ToolButton}" Click="OpenDataDir_Click" />
-                        <Button Content="Открыть файл журнала" Style="{StaticResource ToolButton}" Click="OpenLogFile_Click" />
+                        <Button Content="{ui:Tr 'Открыть папку с данными', 'Open data folder'}" Style="{StaticResource ToolButton}" Click="OpenDataDir_Click" />
+                        <Button Content="{ui:Tr 'Открыть файл журнала', 'Open log file'}" Style="{StaticResource ToolButton}" Click="OpenLogFile_Click" />
                     </StackPanel>
                     <TextBlock x:Name="VersionText" Style="{StaticResource Hint}" Margin="0,16,0,0" />
                 </StackPanel>
@@ -288,11 +297,11 @@
         </TabItem>
 
         <!-- ================= Журнал ================= -->
-        <TabItem Header="Журнал">
+        <TabItem Header="{ui:Tr 'Журнал', 'Log'}">
             <DockPanel Margin="0,12,0,0">
                 <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,10,0,0">
-                    <Button Content="Открыть файл журнала" Style="{StaticResource ToolButton}" Click="OpenLogFile_Click" />
-                    <Button Content="Очистить окно" Style="{StaticResource ToolButton}" Click="ClearJournal_Click" />
+                    <Button Content="{ui:Tr 'Открыть файл журнала', 'Open log file'}" Style="{StaticResource ToolButton}" Click="OpenLogFile_Click" />
+                    <Button Content="{ui:Tr 'Очистить окно', 'Clear'}" Style="{StaticResource ToolButton}" Click="ClearJournal_Click" />
                 </StackPanel>
                 <TextBox x:Name="JournalBox" IsReadOnly="True" FontFamily="Consolas" FontSize="12"
                          TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"

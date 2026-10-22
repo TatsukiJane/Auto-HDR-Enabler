@@ -129,14 +129,14 @@ public sealed class ProcessWatcher : IDisposable
         }
         catch (Exception ex)
         {
-            Log.Error("Ошибка опроса процессов", ex);
+            Log.Error(Loc.T("Ошибка опроса процессов", "Process polling failed"), ex);
         }
     }
 
     static void Raise(Action action)
     {
         try { action(); }
-        catch (Exception ex) { Log.Error("Ошибка обработчика процесса", ex); }
+        catch (Exception ex) { Log.Error(Loc.T("Ошибка обработчика процесса", "Process handler failed"), ex); }
     }
 
     public void Dispose() => stop.Set();

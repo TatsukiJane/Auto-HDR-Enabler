@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
+using System.Windows.Markup;
 using System.Windows.Media;
 using AutoHdr.Core;
 using AutoHdr.Library;
@@ -39,9 +40,9 @@ public sealed class MonitorRow : Observable
         }
     }
 
-    public string StateText => !Connected ? "Не подключён"
-        : !HdrSupported ? "HDR не поддерживается"
-        : HdrOn ? "HDR включён" : "HDR выключен";
+    public string StateText => !Connected ? Loc.T("Не подключён", "Not connected")
+        : !HdrSupported ? Loc.T("HDR не поддерживается", "HDR not supported")
+        : HdrOn ? Loc.T("HDR включён", "HDR on") : Loc.T("HDR выключен", "HDR off");
 
     /// <summary>Обновить флажок значением из реестра мониторов, не записывая его обратно.</summary>
     public void SetAutoSilently(bool value)
@@ -57,6 +58,13 @@ public sealed class MonitorRow : Observable
         Raise(nameof(CanForget));
         Raise(nameof(StateText));
     }
+}
+
+/// <summary>Строка на языке интерфейса в разметке: <c>{ui:Tr 'Игры', 'Games'}</c>. При смене языка окно пересоздаётся.</summary>
+[MarkupExtensionReturnType(typeof(string))]
+public sealed class TrExtension(string ru, string en) : MarkupExtension
+{
+    public override object ProvideValue(IServiceProvider serviceProvider) => Loc.T(ru, en);
 }
 
 public sealed class HdrBrushConverter : IValueConverter

@@ -118,7 +118,7 @@ public sealed partial class HdrInfoService
             catch (Exception ex)
             {
                 failed[game] = true;
-                if (++errorsInRow == 3) Log.Warn($"Steam Store недоступен, остальные игры пропущены: {ex.Message}");
+                if (++errorsInRow == 3) Log.Warn(Loc.T($"Steam Store недоступен, остальные игры пропущены: {ex.Message}", $"Steam Store unavailable, remaining games skipped: {ex.Message}"));
             }
             finally
             {
@@ -176,7 +176,7 @@ public sealed partial class HdrInfoService
             catch (Exception ex)
             {
                 failed[game] = true;
-                if (++errorsInRow == 3) Log.Warn($"PCGamingWiki недоступна, остальные игры пропущены: {ex.Message}");
+                if (++errorsInRow == 3) Log.Warn(Loc.T($"PCGamingWiki недоступна, остальные игры пропущены: {ex.Message}", $"PCGamingWiki unavailable, remaining games skipped: {ex.Message}"));
             }
             finally
             {
@@ -337,7 +337,7 @@ public sealed partial class HdrInfoService
             }
             catch (Exception ex)
             {
-                Log.Warn($"Не удалось проверить файлы «{game.Name}»: {ex.Message}");
+                Log.Warn(Loc.T($"Не удалось проверить файлы «{game.Name}»: {ex.Message}", $"Could not check the files of “{game.Name}”: {ex.Message}"));
             }
             finally
             {
