@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Input;
 using AutoHdr.Core;
@@ -26,6 +27,13 @@ public partial class MainWindow : Window
         this.app = app;
         InitializeComponent();
         DataContext = app.Status;
+
+        // Подсказки заголовков заданы в разметке через ToolTipService.ToolTip столбца.
+        // Привязка из стиля не работает: заголовок получает Column позже и без уведомления
+        var headerStyle = TryFindResource(typeof(DataGridColumnHeader)) as Style;
+        foreach (var column in GamesGrid.Columns.Concat(MonitorsGrid.Columns))
+            if (ToolTipService.GetToolTip(column) is { } tip)
+                column.HeaderStyle = new Style(typeof(DataGridColumnHeader), headerStyle) { Setters = { new Setter(ToolTipProperty, tip) } };
 
         gamesView = new ListCollectionView(app.Games.Games) { Filter = FilterGame };
         ApplyDefaultSort();
