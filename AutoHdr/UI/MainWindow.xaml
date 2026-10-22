@@ -28,6 +28,10 @@
         <Style x:Key="SettingCheck" TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
             <Setter Property="Margin" Value="0,6,0,0" />
         </Style>
+        <!-- Подсказка заголовка берётся из ToolTipService.ToolTip столбца -->
+        <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+            <Setter Property="ToolTip" Value="{Binding Column.(ToolTipService.ToolTip), RelativeSource={RelativeSource Self}}" />
+        </Style>
         <Style x:Key="CellText" TargetType="TextBlock">
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="TextTrimming" Value="CharacterEllipsis" />
@@ -105,7 +109,8 @@
                             </Style>
                         </DataGrid.RowStyle>
                         <DataGrid.Columns>
-                            <DataGridTemplateColumn Header="Авто-HDR" Width="96" SortMemberPath="Enabled">
+                            <DataGridTemplateColumn Header="Авто-HDR" Width="96" SortMemberPath="Enabled"
+                                                    ToolTipService.ToolTip="Включать HDR, пока игра запущена">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <CheckBox IsChecked="{Binding EnabledUi, UpdateSourceTrigger=PropertyChanged}"
@@ -118,7 +123,8 @@
                                                 ElementStyle="{StaticResource CellText}" />
                             <DataGridTextColumn Header="Откуда" Binding="{Binding SourceText}" IsReadOnly="True" Width="110"
                                                 SortMemberPath="Source" ElementStyle="{StaticResource CellText}" />
-                            <DataGridTemplateColumn Header="HDR" Width="130" SortMemberPath="HdrSortKey">
+                            <DataGridTemplateColumn Header="HDR" Width="130" SortMemberPath="HdrSortKey"
+                                                    ToolTipService.ToolTip="Поддержка HDR по данным Steam, PCGamingWiki и файлов игры">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Background="Transparent"
@@ -129,7 +135,8 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Header="Ждать HDR" Width="104" SortMemberPath="HoldUntilHdr">
+                            <DataGridTemplateColumn Header="Ждать HDR" Width="104" SortMemberPath="HoldUntilHdr"
+                                                    ToolTipService.ToolTip="Приостанавливать запуск игры, пока HDR не включится. Для онлайн-игр с античитом это рискованно">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <CheckBox IsChecked="{Binding HoldUi, UpdateSourceTrigger=PropertyChanged}"
@@ -177,11 +184,13 @@
                           HeadersVisibility="Column" GridLinesVisibility="None" SelectionMode="Single" RowHeaderWidth="0"
                           CanUserSortColumns="False">
                     <DataGrid.Columns>
-                        <DataGridTemplateColumn Header="Авто-HDR" Width="96">
+                        <DataGridTemplateColumn Header="Авто-HDR" Width="96"
+                                                ToolTipService.ToolTip="Включать HDR на мониторе, пока запущена игра">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <CheckBox IsChecked="{Binding AutoHdr, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding HdrSupported}"
-                                              HorizontalAlignment="Center" MinWidth="0" Focusable="False" />
+                                              HorizontalAlignment="Center" MinWidth="0" Focusable="False"
+                                              ToolTip="Включать HDR на этом мониторе, пока запущена игра" />
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
@@ -202,6 +211,7 @@
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal" Margin="0,2" VerticalAlignment="Center">
                                         <Button Content="Переключить HDR" Padding="10,4" Margin="0,0,8,0" Click="ToggleMonitor_Click"
+                                                ToolTip="Включить или выключить HDR прямо сейчас, без игры"
                                                 Visibility="{Binding CanToggle, Converter={StaticResource Visible}}" />
                                         <Button Content="Забыть" Padding="10,4" Click="ForgetMonitor_Click"
                                                 Visibility="{Binding CanForget, Converter={StaticResource Visible}}"
