@@ -9,7 +9,6 @@ public sealed class MonitorRecord
     public bool AutoHdr { get; set; }
     public bool HdrSupported { get; set; }
     public bool IsVirtual { get; set; }
-    public DateTime FirstSeen { get; set; }
 }
 
 public sealed class MonitorRegistryData
@@ -32,6 +31,9 @@ public sealed partial class MonitorRegistry
 
     public event Action? Changed;
 
+    /// <summary>Монитор узнан по EDID и имени под новым путём устройства: старый ключ, новый ключ.</summary>
+    public event Action<string, string>? KeyChanged;
+
     public static MonitorRegistry Load() => new(JsonStore.Load<MonitorRegistryData>(AppPaths.MonitorsFile));
 
     public IReadOnlyList<MonitorRecord> All
@@ -51,6 +53,7 @@ public sealed partial class MonitorRegistry
     public void Sync(IReadOnlyList<DisplayInfo> displays)
     {
         bool changed = false;
+        var rekeyed = new List<(string Old, string New)>();
         lock (gate)
         {
             foreach (var d in displays)
@@ -62,7 +65,6 @@ public sealed partial class MonitorRegistry
                     record = new MonitorRecord
                     {
                         Key = d.Key,
-                        FirstSeen = DateTime.Now,
                         AutoHdr = !data.Initialized && d.HdrSupported && !d.IsVirtual && !tv,
                     };
                     data.Monitors.Add(record);
@@ -77,6 +79,7 @@ public sealed partial class MonitorRegistry
                     || record.Connection != d.Connection || record.HdrSupported != d.HdrSupported
                     || record.IsVirtual != d.IsVirtual)
                 {
+                    if (record.Key != d.Key) rekeyed.Add((record.Key, d.Key));
                     record.Key = d.Key;
                     record.Name = d.Name;
                     record.EdidId = d.EdidId;
@@ -89,6 +92,7 @@ public sealed partial class MonitorRegistry
 
             if (changed) SaveLocked();
         }
+        foreach (var (oldKey, newKey) in rekeyed) KeyChanged?.Invoke(oldKey, newKey);
         if (changed) Changed?.Invoke();
     }
 

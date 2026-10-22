@@ -43,18 +43,6 @@ public static class ProcessUtil
         try { return action(handle); }
         finally { CloseHandle(handle); }
     }
-
-    /// <summary>Есть ли запущенный процесс, exe которого лежит внутри папки.</summary>
-    public static bool AnyProcessUnder(string dir, uint excludePid = 0)
-    {
-        foreach (var pid in EnumPids())
-        {
-            if (pid == excludePid) continue;
-            var path = GetPath(pid);
-            if (path != null && PathUtil.IsUnder(path, dir)) return true;
-        }
-        return false;
-    }
 }
 
 /// <summary>

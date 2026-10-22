@@ -107,13 +107,12 @@ public partial class App : Application
         Watcher.Start();
         StartupTrace.Mark("watcher started");
         Log.Info($"Auto HDR запущен. Права администратора: {(Elevation.IsElevated ? "есть" : "нет")}");
-        Engine.RecoverPending();
 
         SystemEvents.DisplaySettingsChanged += (_, _) => Dispatcher.BeginInvoke(RefreshHdrState);
         stateTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
         stateTimer.Tick += (_, _) => RefreshHdrState();
         stateTimer.Start();
-        RefreshHdrState();
+        RefreshHdrState(); // заодно вернёт SDR, если прошлый запуск не успел выключить HDR после игры
 
         if (!args.Contains("--tray", StringComparer.OrdinalIgnoreCase)) ShowMainWindow();
         _ = StartupScanAsync();
@@ -195,6 +194,7 @@ public partial class App : Application
         if (exiting) return;
         var displays = HdrControl.GetDisplays();
         Monitors.Sync(displays);
+        Engine?.OnDisplaysChanged(displays);
         var targets = Monitors.Targets(displays);
         if (targets.Count == 0) targets = displays.Where(d => d.HdrSupported).ToList();
         bool? hdrOn = targets.Count == 0 ? null : targets.Any(d => d.HdrOn);

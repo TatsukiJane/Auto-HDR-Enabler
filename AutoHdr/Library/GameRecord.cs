@@ -30,7 +30,6 @@ public sealed class GameRecord : Observable
     public string? StoreId { get; set; }
     public string? InstallDir { get; set => Set(ref field, value); }
     public string? ExePath { get; set; }
-    public DateTime AddedAt { get; set; } = DateTime.Now;
 
     public bool Enabled
     {

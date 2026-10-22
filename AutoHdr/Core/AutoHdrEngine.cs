@@ -24,6 +24,18 @@ public sealed class AutoHdrEngine
         this.games = games;
         this.monitors = monitors;
         this.settings = settings;
+
+        // Монитор вернулся под другим путём устройства (другой разъём, драйвер, переподключение): PendingRevert идёт за ним
+        monitors.KeyChanged += (oldKey, newKey) =>
+        {
+            lock (gate)
+            {
+                int i = settings.PendingRevert.IndexOf(oldKey);
+                if (i < 0) return;
+                settings.PendingRevert[i] = newKey;
+            }
+            settings.Save();
+        };
     }
 
     /// <summary>Заголовок и текст уведомления.</summary>
@@ -57,28 +69,32 @@ public sealed class AutoHdrEngine
     public void OnExited(uint pid)
     {
         GameRecord? game;
-        bool noGamesLeft, gameClosed;
+        bool gameClosed;
         lock (gate)
         {
             if (!tracked.Remove(pid, out game)) return;
             gameClosed = !tracked.ContainsValue(game);
-            noGamesLeft = tracked.Count == 0;
+            // Под gate: OnDisplaysChanged не должен вернуть SDR в обход задержки
+            if (tracked.Count == 0) ScheduleRevert();
         }
 
         if (gameClosed) Log.Info($"Игра «{game.Name}» закрыта");
-        if (noGamesLeft) ScheduleRevert();
         StateChanged?.Invoke();
     }
 
-    /// <summary>Если приложение в прошлый раз включило HDR и не успело вернуть, возвращаем сейчас.</summary>
-    public void RecoverPending()
+    /// <summary>
+    /// Вызывается при каждом опросе мониторов. Если игр нет, возврат не запланирован, а монитор из PendingRevert
+    /// подключён, возвращает прежний режим. Так HDR выключается после сбоя приложения, после игры, которая закрылась,
+    /// пока HDR ещё включался, и на мониторе, которого не было в списке Windows в момент выхода из игры.
+    /// </summary>
+    public void OnDisplaysChanged(IReadOnlyList<DisplayInfo> displays)
     {
         lock (gate)
         {
-            if (tracked.Count > 0 || settings.PendingRevert.Count == 0) return;
+            if (tracked.Count > 0 || graceCts != null || !displays.Any(d => settings.PendingRevert.Contains(d.Key))) return;
+            ScheduleRevert();
         }
-        Log.Info("HDR остался включённым после прошлого запуска, возвращается прежний режим");
-        _ = RevertAsync();
+        Log.Info("HDR, включённый для игры, ещё не выключен: возвращается прежний режим");
     }
 
     public bool HasPendingRevert
@@ -110,6 +126,11 @@ public sealed class AutoHdrEngine
             await switchLock.WaitAsync();
             try
             {
+                lock (gate)
+                {
+                    if (!tracked.ContainsKey(pid)) return; // процесс закрылся, пока ждал очереди: HDR ему уже не нужен
+                }
+
                 var displays = HdrControl.GetDisplays();
                 monitors.Sync(displays);
                 var toEnable = monitors.Targets(displays).Where(d => !d.HdrOn).ToList();
@@ -173,9 +194,14 @@ public sealed class AutoHdrEngine
         }
 
         var delay = TimeSpan.FromSeconds(settings.ExitDelay ? Math.Clamp(settings.ExitDelaySec, 0, 600) : 0);
-        _ = Task.Delay(delay, cts.Token).ContinueWith(t =>
+        _ = Task.Delay(delay, cts.Token).ContinueWith(async t =>
         {
-            if (!t.IsCanceled) _ = RevertAsync();
+            if (t.IsCanceled) return;
+            await RevertAsync();
+            lock (gate)
+            {
+                if (graceCts == cts) graceCts = null;
+            }
         }, TaskScheduler.Default);
     }
 
@@ -192,12 +218,14 @@ public sealed class AutoHdrEngine
             }
             if (keys.Count == 0) return;
 
-            var toDisable = HdrControl.GetDisplays().Where(d => keys.Contains(d.Key) && d.HdrOn).ToList();
+            var displays = HdrControl.GetDisplays();
+            var toDisable = displays.Where(d => keys.Contains(d.Key) && d.HdrOn).ToList();
             foreach (var display in toDisable) HdrControl.SetHdr(display, false);
             if (toDisable.Count > 0)
                 await HdrControl.WaitForStateAsync(toDisable.Select(d => d.Key).ToList(), false, ConfirmTimeout);
 
-            lock (gate) settings.PendingRevert.Clear();
+            // Монитор, которого сейчас нет (выключен, или Windows не ответила), остаётся в списке до OnDisplaysChanged
+            lock (gate) settings.PendingRevert.RemoveAll(k => displays.Any(d => d.Key == k));
             settings.Save();
 
             if (toDisable.Count > 0)

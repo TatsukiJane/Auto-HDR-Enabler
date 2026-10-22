@@ -31,7 +31,8 @@ public static class Cli
         var displays = HdrControl.GetDisplays();
         monitors.Sync(displays);
         var enabled = new List<string>();
-        foreach (var display in monitors.Targets(displays).Where(d => !d.HdrOn))
+        if (settings.Paused) Log.Info($"Автопереключение на паузе: {gameName} запускается без HDR");
+        foreach (var display in monitors.Targets(displays).Where(d => !d.HdrOn && !settings.Paused))
             if (HdrControl.SetHdr(display, true)) enabled.Add(display.Key);
         if (enabled.Count > 0)
         {
@@ -56,11 +57,22 @@ public static class Cli
         // Лаунчер мог передать управление другому процессу из папки игры: ждём, пока закроются все
         var root = GameRoot(exe);
         var grace = TimeSpan.FromSeconds(Math.Clamp(settings.ExitDelay ? settings.ExitDelaySec : 0, 3, 600));
+        var alive = new HashSet<uint>();
+        using var watcher = new ProcessWatcher();
+        watcher.Started += (pid, path) =>
+        {
+            if (pid != Environment.ProcessId && PathUtil.IsUnder(path, root)) lock (alive) alive.Add(pid);
+        };
+        watcher.Exited += pid => { lock (alive) alive.Remove(pid); };
+        watcher.Start();
         var quietSince = DateTime.UtcNow;
         while (DateTime.UtcNow - quietSince < grace)
         {
-            if (ProcessUtil.AnyProcessUnder(root, (uint)Environment.ProcessId)) quietSince = DateTime.UtcNow;
-            Thread.Sleep(1000);
+            lock (alive)
+            {
+                if (alive.Count > 0) quietSince = DateTime.UtcNow;
+            }
+            Thread.Sleep(250);
         }
 
         if (enabled.Count > 0 && settings.RestoreAfterExit)
