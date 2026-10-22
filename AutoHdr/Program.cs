@@ -7,10 +7,10 @@ public static class Program
     [STAThread]
     public static int Main(string[] args)
     {
-        // --data <папка>: отдельная папка настроек (для тестов). Должен идти первым, до обращения к AppPaths.
+        // --data <папка>: отдельная папка настроек (для тестов). Должен идти первым, до обращения к AppPaths.DataDir.
         if (args.Length >= 2 && args[0].Equals("--data", StringComparison.OrdinalIgnoreCase))
         {
-            Environment.SetEnvironmentVariable("AUTOHDR_DATA_DIR", args[1]);
+            AppPaths.DataDirOverride = args[1];
             args = args[2..];
         }
 

@@ -12,13 +12,15 @@
     <StartupObject>AutoHdr.Program</StartupObject>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
-    <Version>1.0.6</Version>
+    <Version>1.0.7</Version>
     <Product>Auto HDR</Product>
     <Description>Автоматически включает HDR в Windows при запуске игр</Description>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <!-- WPF0001: Fluent-тема (ThemeMode), WFO5001: тёмный режим WinForms для меню трея -->
     <!-- WFO0003: DPI задан в манифесте сознательно, им управляет WPF -->
     <NoWarn>$(NoWarn);WPF0001;WFO5001;WFO0003;SYSLIB1054</NoWarn>
+    <!-- Трей работает с правами администратора, а DOTNET_STARTUP_HOOKS задаёт обычный пользователь -->
+    <StartupHookSupport>false</StartupHookSupport>
   </PropertyGroup>
 
   <ItemGroup>

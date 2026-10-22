@@ -120,7 +120,9 @@ public sealed class AutoHdrEngine
             if (game.HoldUntilHdr && NeedsSwitch())
             {
                 suspended = ProcessUtil.Suspend(pid);
-                if (suspended) Log.Info($"«{game.Name}» приостановлена до включения HDR");
+                Log.Info(suspended
+                    ? $"«{game.Name}» приостановлена до включения HDR"
+                    : $"«{game.Name}» не приостановлена: нет прав или процесс запущен другим пользователем");
             }
 
             await switchLock.WaitAsync();

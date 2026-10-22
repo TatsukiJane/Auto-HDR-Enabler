@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using Microsoft.Win32.SafeHandles;
 
 namespace AutoHdr.Core;
 
@@ -164,6 +165,21 @@ public static class Native
 
     [DllImport("ntdll.dll")]
     public static extern int NtResumeProcess(IntPtr processHandle);
+
+    public const uint TOKEN_QUERY = 0x0008;
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    public static extern bool OpenProcessToken(IntPtr processHandle, uint desiredAccess, out IntPtr tokenHandle);
+
+    // ---- Файлы ----
+
+    public const uint FILE_LIST_DIRECTORY = 0x0001;             // без права чтения или записи Windows не проверяет режим совместного доступа
+    public const uint FILE_FLAG_BACKUP_SEMANTICS = 0x02000000;  // нужен, чтобы открыть папку
+    public const uint FILE_FLAG_OPEN_REPARSE_POINT = 0x00200000;
+
+    [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode, EntryPoint = "CreateFileW")]
+    public static extern SafeFileHandle CreateFile(string fileName, uint desiredAccess, FileShare shareMode, IntPtr securityAttributes,
+        FileMode creationDisposition, uint flagsAndAttributes, IntPtr templateFile);
 
     // ---- Прочее ----
 

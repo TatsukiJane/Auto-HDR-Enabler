@@ -1,9 +1,12 @@
+using System.Security.Principal;
 using static AutoHdr.Core.Native;
 
 namespace AutoHdr.Core;
 
 public static class ProcessUtil
 {
+    static readonly SecurityIdentifier? CurrentUser = WindowsIdentity.GetCurrent().User;
+
     public static uint[] EnumPids()
     {
         var buffer = new uint[2048];
@@ -33,8 +36,36 @@ public static class ProcessUtil
         }
     }
 
-    public static bool Suspend(uint pid) => WithSuspendHandle(pid, h => NtSuspendProcess(h) == 0);
+    /// <summary>
+    /// Приостанавливает только процессы того же пользователя: список игр правит обычный пользователь,
+    /// а копия с правами администратора иначе могла бы приостановить службу или процесс другого пользователя.
+    /// </summary>
+    public static bool Suspend(uint pid) => IsOwnProcess(pid) && WithSuspendHandle(pid, h => NtSuspendProcess(h) == 0);
+
     public static bool Resume(uint pid) => WithSuspendHandle(pid, h => NtResumeProcess(h) == 0);
+
+    static bool IsOwnProcess(uint pid)
+    {
+        var process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
+        if (process == IntPtr.Zero) return false;
+        try
+        {
+            if (!OpenProcessToken(process, TOKEN_QUERY, out var token)) return false;
+            try
+            {
+                using var identity = new WindowsIdentity(token);
+                return CurrentUser != null && identity.User == CurrentUser;
+            }
+            finally
+            {
+                CloseHandle(token);
+            }
+        }
+        finally
+        {
+            CloseHandle(process);
+        }
+    }
 
     static bool WithSuspendHandle(uint pid, Func<IntPtr, bool> action)
     {

@@ -58,6 +58,7 @@ public sealed partial class HdrInfoService
         var client = new HttpClient(new SocketsHttpHandler { AutomaticDecompression = DecompressionMethods.All })
         {
             Timeout = TimeSpan.FromSeconds(20),
+            MaxResponseContentBufferSize = 8_000_000, // страница PCGamingWiki — до 2 МБ, больше не ждём
         };
         client.DefaultRequestHeaders.UserAgent.ParseAdd("AutoHdrEnabler/1.0 (Windows desktop utility; automatic HDR switching)");
         return client;
@@ -359,8 +360,9 @@ public sealed partial class HdrInfoService
 
     static List<string> CandidateExes(GameRecord game)
     {
-        if (game.ExePath != null) return File.Exists(game.ExePath) ? [game.ExePath] : [];
-        if (game.InstallDir == null || !Directory.Exists(game.InstallDir)) return [];
+        // Пути \\сервер\… и \\.\устройство не читаем: список игр правит обычный пользователь, а читать может копия с правами администратора
+        if (game.ExePath != null) return !IsUncOrDevice(game.ExePath) && File.Exists(game.ExePath) ? [game.ExePath] : [];
+        if (game.InstallDir == null || IsUncOrDevice(game.InstallDir) || !Directory.Exists(game.InstallDir)) return [];
 
         var options = new EnumerationOptions
         {
@@ -376,6 +378,8 @@ public sealed partial class HdrInfoService
             .Select(f => f.FullName)
             .ToList();
     }
+
+    static bool IsUncOrDevice(string path) => path.StartsWith(@"\\", StringComparison.Ordinal) || path.StartsWith("//", StringComparison.Ordinal);
 
     static void ScanFile(string path, ISet<string> found)
     {

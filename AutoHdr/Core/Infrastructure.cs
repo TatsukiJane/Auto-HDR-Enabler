@@ -9,22 +9,57 @@ namespace AutoHdr.Core;
 
 public static class AppPaths
 {
-    public static string DataDir { get; } = CreateDataDir();
+    static readonly Lazy<string> dataDir = new(CreateDataDir);
+
+    /// <summary>Папка из аргумента --data. Задаётся в Program.Main до первого обращения к <see cref="DataDir"/>.</summary>
+    public static string? DataDirOverride { get; set; }
+
+    public static string DataDir => dataDir.Value;
     public static string SettingsFile => Path.Combine(DataDir, "settings.json");
     public static string MonitorsFile => Path.Combine(DataDir, "monitors.json");
     public static string GamesFile => Path.Combine(DataDir, "games.json");
     public static string LogFile => Path.Combine(DataDir, "log.txt");
     public static string ExePath => Environment.ProcessPath ?? Path.Combine(AppContext.BaseDirectory, "AutoHdr.exe");
 
+    /// <summary>Копия для автозапуска: в Program Files её не может подменить обычный пользователь.</summary>
+    public static string InstalledExe =>
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Auto HDR", "AutoHdr.exe");
+
+    /// <summary>Дескриптор папки данных у копии с правами администратора: пока он открыт, папку не переименовать.</summary>
+    public static Microsoft.Win32.SafeHandles.SafeFileHandle? DataDirLock { get; private set; }
+
     static string CreateDataDir()
     {
-        // AUTOHDR_DATA_DIR — отдельная папка данных для тестов, чтобы не трогать настоящие настройки
-        var custom = Environment.GetEnvironmentVariable("AUTOHDR_DATA_DIR");
+        // AUTOHDR_DATA_DIR — отдельная папка данных для тестов. С правами администратора не читаем: окружение задаёт обычный пользователь
+        var custom = DataDirOverride ?? (Elevation.IsElevated ? null : Environment.GetEnvironmentVariable("AUTOHDR_DATA_DIR"));
         var dir = !string.IsNullOrWhiteSpace(custom)
             ? custom
             : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AutoHdr");
         Directory.CreateDirectory(dir);
+        // Без FILE_SHARE_DELETE папку нельзя переименовать и поставить на её место ссылку
+        if (Elevation.IsElevated)
+            DataDirLock = Native.CreateFile(dir, Native.FILE_LIST_DIRECTORY, FileShare.ReadWrite, IntPtr.Zero, FileMode.Open,
+                Native.FILE_FLAG_BACKUP_SEMANTICS | Native.FILE_FLAG_OPEN_REPARSE_POINT, IntPtr.Zero);
         return dir;
+    }
+
+    /// <summary>
+    /// Копия с правами администратора не читает и не пишет через reparse point (соединение, символическую ссылку)
+    /// ни в самой папке данных, ни в её файлах: папкой владеет обычный пользователь.
+    /// shortcut: между проверкой и записью остаётся гонка; закрыть её можно только папкой, куда обычный пользователь не пишет
+    /// </summary>
+    public static void EnsureNoReparsePoint(params string[] paths)
+    {
+        if (!Elevation.IsElevated) return;
+        foreach (var path in paths.Prepend(DataDir))
+        {
+            FileAttributes attributes;
+            try { attributes = File.GetAttributes(path); }
+            catch (FileNotFoundException) { continue; }
+            catch (DirectoryNotFoundException) { continue; }
+            if ((attributes & FileAttributes.ReparsePoint) != 0)
+                throw new IOException($"{path} ведёт в другое место, копия с правами администратора его не трогает");
+        }
     }
 }
 
@@ -132,6 +167,7 @@ public static class Log
             if (Recent.Count > MaxLines) Recent.RemoveFirst();
             try
             {
+                AppPaths.EnsureNoReparsePoint(AppPaths.LogFile, AppPaths.LogFile + ".old");
                 var file = new FileInfo(AppPaths.LogFile);
                 if (file.Exists && file.Length > 1_000_000)
                     File.Move(AppPaths.LogFile, AppPaths.LogFile + ".old", overwrite: true);
@@ -161,13 +197,19 @@ public static class JsonStore
     {
         try
         {
+            AppPaths.EnsureNoReparsePoint(path);
             if (File.Exists(path))
                 return JsonSerializer.Deserialize<T>(File.ReadAllText(path), Options) ?? new T();
         }
         catch (Exception ex)
         {
             Log.Error($"Не удалось прочитать {Path.GetFileName(path)}, файл сохранён как .bad", ex);
-            try { File.Copy(path, path + ".bad", overwrite: true); } catch { }
+            try
+            {
+                AppPaths.EnsureNoReparsePoint(path, path + ".bad");
+                File.Copy(path, path + ".bad", overwrite: true);
+            }
+            catch { }
         }
         return new T();
     }
@@ -175,6 +217,7 @@ public static class JsonStore
     public static void Save<T>(string path, T value)
     {
         var tmp = path + ".tmp";
+        AppPaths.EnsureNoReparsePoint(tmp, path);
         File.WriteAllText(tmp, JsonSerializer.Serialize(value, Options));
         File.Move(tmp, path, overwrite: true);
     }

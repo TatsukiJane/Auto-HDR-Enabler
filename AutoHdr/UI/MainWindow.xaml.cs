@@ -50,7 +50,9 @@ public partial class MainWindow : Window
         Log.LineAdded += line => Dispatcher.BeginInvoke(() => AppendJournal(line));
         Loaded += (_, _) => JournalBox.ScrollToEnd();
 
-        LaunchCommandBox.Text = $"\"{AppPaths.ExePath}\" --launch %command%";
+        // Копия из Program Files не меняет путь при пересборке и есть, пока включён или был включён автозапуск
+        var launcher = File.Exists(AppPaths.InstalledExe) ? AppPaths.InstalledExe : AppPaths.ExePath;
+        LaunchCommandBox.Text = $"\"{launcher}\" --launch %command%";
         VersionText.Text = $"Auto HDR {typeof(MainWindow).Assembly.GetName().Version?.ToString(3)} · данные: {AppPaths.DataDir}";
         LoadSettings();
     }
@@ -398,10 +400,12 @@ public partial class MainWindow : Window
     /// <summary>
     /// Открыть папку, файл или ссылку от имени обычного пользователя:
     /// через explorer.exe, чтобы браузер не унаследовал права администратора.
+    /// Полный путь: по короткому имени Windows сначала ищет программу в папке приложения.
     /// </summary>
     static void OpenUnelevated(string target)
     {
-        try { Process.Start(new ProcessStartInfo("explorer.exe", $"\"{target}\"") { UseShellExecute = false }); }
+        var explorer = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "explorer.exe");
+        try { Process.Start(new ProcessStartInfo(explorer, $"\"{target}\"") { UseShellExecute = false }); }
         catch (Exception ex) { Log.Error($"Не удалось открыть {target}", ex); }
     }
 

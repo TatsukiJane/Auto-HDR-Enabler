@@ -25,12 +25,30 @@ public static class TaskInstaller
         return RunElevated(arg) == 0;
     }
 
+    /// <summary>Вызывается только с правами администратора.</summary>
     public static int Install()
     {
-        var file = Path.Combine(Path.GetTempPath(), $"AutoHdrTask-{Guid.NewGuid():N}.xml");
+        // Задача с правами администратора запускает копию из Program Files: папку сборки или загрузки может изменить обычный пользователь
+        var exe = AppPaths.InstalledExe;
         try
         {
-            File.WriteAllText(file, BuildXml(), Encoding.Unicode);
+            if (!string.Equals(AppPaths.ExePath, exe, StringComparison.OrdinalIgnoreCase))
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(exe)!);
+                File.Copy(AppPaths.ExePath, exe, overwrite: true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"Не удалось скопировать приложение в {Path.GetDirectoryName(exe)}", ex);
+            return -1;
+        }
+
+        // Не в %TEMP% пользователя: там файл до чтения schtasks может подменить обычный процесс
+        var file = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Temp", $"AutoHdrTask-{Guid.NewGuid():N}.xml");
+        try
+        {
+            File.WriteAllText(file, BuildXml(exe), Encoding.Unicode);
             int code = RunSchtasks($"/Create /TN \"{TaskName}\" /XML \"{file}\" /F");
             if (code == 0) Log.Info("Автозапуск включён: задача планировщика создана");
             else Log.Warn($"Не удалось создать задачу планировщика, код {code}");
@@ -70,12 +88,12 @@ public static class TaskInstaller
         }
     }
 
-    static string BuildXml()
+    static string BuildXml(string exePath)
     {
         using var identity = WindowsIdentity.GetCurrent();
         var user = SecurityElement.Escape(identity.Name);
-        var exe = SecurityElement.Escape(AppPaths.ExePath);
-        var dir = SecurityElement.Escape(Path.GetDirectoryName(AppPaths.ExePath) ?? "");
+        var exe = SecurityElement.Escape(exePath);
+        var dir = SecurityElement.Escape(Path.GetDirectoryName(exePath) ?? "");
         return $"""
             <?xml version="1.0" encoding="UTF-16"?>
             <Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
@@ -129,7 +147,8 @@ public static class TaskInstaller
     {
         try
         {
-            using var process = Process.Start(new ProcessStartInfo("schtasks.exe", args)
+            // Полный путь: по короткому имени Windows сначала ищет программу в папке приложения
+            using var process = Process.Start(new ProcessStartInfo(Path.Combine(Environment.SystemDirectory, "schtasks.exe"), args)
             {
                 UseShellExecute = false,
                 CreateNoWindow = true,
