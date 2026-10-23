@@ -11,7 +11,7 @@ indent_size = 4
 [*.{csproj,props,targets,manifest,json}]
 indent_size = 2
 
-# Windows PowerShell 5.1 читает файлы без BOM в кодировке ANSI и портит кириллицу
+# Windows PowerShell 5.1 reads files without a BOM as ANSI and mangles non-ASCII text
 [*.ps1]
 charset = utf-8-bom
 

@@ -3,7 +3,7 @@ using static AutoHdr.Core.Native;
 
 namespace AutoHdr.Core;
 
-/// <summary>Активный дисплей и его HDR-состояние на момент опроса.</summary>
+/// <summary>An active display and its HDR state at the time of the poll.</summary>
 public sealed record DisplayInfo(
     string Key,
     string Name,
@@ -19,7 +19,7 @@ public sealed record DisplayInfo(
     public string Connection => HdrControl.DescribeConnection(OutputTechnology);
 }
 
-/// <summary>Чтение и переключение HDR через DisplayConfig API. Права администратора не нужны.</summary>
+/// <summary>Reads and switches HDR through the DisplayConfig API. No administrator rights needed.</summary>
 public static class HdrControl
 {
     const uint OutputOther = 0xFFFFFFFF;
@@ -47,7 +47,7 @@ public static class HdrControl
             for (int i = 0; i < pathCount; i++)
             {
                 var target = paths[i].TargetInfo;
-                if (!seen.Add((target.AdapterId.Value, target.Id))) continue; // режим клонирования
+                if (!seen.Add((target.AdapterId.Value, target.Id))) continue; // clone mode
                 list.Add(Describe(target, list.Count + 1));
             }
             return list;
@@ -80,7 +80,7 @@ public static class HdrControl
         return new DisplayInfo(key, friendly, edid, tech, target.AdapterId, target.Id, supported, on, active, isVirtual);
     }
 
-    /// <summary>Возвращает (HDR поддерживается, HDR включён пользователем, HDR реально активен).</summary>
+    /// <summary>Returns (HDR supported, HDR turned on by the user, HDR actually active).</summary>
     static (bool Supported, bool On, bool Active) ReadHdr(LUID adapter, uint id)
     {
         var info2 = new AdvancedColorInfo2
@@ -95,7 +95,7 @@ public static class HdrControl
             return (supported, userEnabled || active, active);
         }
 
-        // Windows до 24H2
+        // Windows before 24H2
         var info = new AdvancedColorInfo
         {
             Header = Header(DeviceInfoType.GetAdvancedColorInfo, Marshal.SizeOf<AdvancedColorInfo>(), adapter, id),
@@ -125,7 +125,7 @@ public static class HdrControl
         return result == 0;
     }
 
-    /// <summary>Ждёт, пока на указанных дисплеях HDR станет активным или неактивным.</summary>
+    /// <summary>Waits until HDR becomes active or inactive on the given displays.</summary>
     public static async Task<bool> WaitForStateAsync(IReadOnlyCollection<string> keys, bool on, TimeSpan timeout)
     {
         var deadline = DateTime.UtcNow + timeout;
@@ -144,7 +144,7 @@ public static class HdrControl
     static DeviceInfoHeader Header(DeviceInfoType type, int size, LUID adapter, uint id) =>
         new() { Type = type, Size = (uint)size, AdapterId = adapter, Id = id };
 
-    /// <summary>EDID-идентификатор вида «AUS27F1»: три буквы PnP-производителя и код модели.</summary>
+    /// <summary>EDID ID like “AUS27F1”: three letters of the PnP manufacturer and the model code.</summary>
     static string DecodeEdid(ushort manufacturer, ushort product)
     {
         static string Letters(int v)
@@ -157,7 +157,7 @@ public static class HdrControl
 
         static bool Valid(string s) => s.All(ch => ch is >= 'A' and <= 'Z');
 
-        // Windows хранит байты EDID в порядке big-endian внутри ushort
+        // Windows stores the EDID bytes big-endian inside a ushort
         var swapped = Letters(((manufacturer & 0xFF) << 8) | (manufacturer >> 8));
         var letters = Valid(swapped) ? swapped : Letters(manufacturer);
         return Valid(letters) ? $"{letters}{product:X4}" : $"{manufacturer:X4}{product:X4}";

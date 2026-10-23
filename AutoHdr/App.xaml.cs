@@ -8,7 +8,7 @@ using Microsoft.Win32;
 
 namespace AutoHdr;
 
-/// <summary>Строка состояния фоновых операций для окна.</summary>
+/// <summary>Status line of background operations for the window.</summary>
 public sealed class AppStatus : Observable
 {
     public bool IsBusy { get; set => Set(ref field, value); }
@@ -31,7 +31,7 @@ public partial class App : Application
     bool scanning, hdrRefreshRunning, exiting;
     Task hdrRefresh = Task.CompletedTask;
 
-    /// <summary>Нужен генератору App.g.cs; настоящая точка входа — Program.Main.</summary>
+    /// <summary>Required by the App.g.cs generator; the real entry point is Program.Main.</summary>
     public App() : this([])
     {
     }
@@ -114,7 +114,7 @@ public partial class App : Application
         stateTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
         stateTimer.Tick += (_, _) => RefreshHdrState();
         stateTimer.Start();
-        RefreshHdrState(); // заодно вернёт SDR, если прошлый запуск не успел выключить HDR после игры
+        RefreshHdrState(); // also restores SDR if the previous run did not turn HDR off after a game
 
         if (!args.Contains("--tray", StringComparer.OrdinalIgnoreCase)) ShowMainWindow();
         _ = StartupScanAsync();
@@ -128,7 +128,7 @@ public partial class App : Application
             instanceMutex = InstanceSignals.CreateMutex(out bool createdNew);
             if (!createdNew)
             {
-                // --wait: перезапуск с правами администратора, старая копия ещё закрывается
+                // --wait: restart with administrator rights, the old copy is still closing
                 var timeout = args.Contains("--wait", StringComparer.OrdinalIgnoreCase) ? TimeSpan.FromSeconds(10) : TimeSpan.Zero;
                 bool acquired;
                 try { acquired = instanceMutex.WaitOne(timeout); }
@@ -145,7 +145,7 @@ public partial class App : Application
         }
         catch (Exception ex)
         {
-            // Мьютекс создан копией, к которой нет доступа: значит, она уже работает
+            // The mutex belongs to a copy we cannot access: so it is already running
             Log.Error(Loc.T("Auto HDR уже запущен", "Auto HDR is already running"), ex);
             InstanceSignals.Signal(InstanceSignals.ShowEventName);
             return false;
@@ -190,7 +190,7 @@ public partial class App : Application
             Loc.T("Значок в трее открывает окно и меню", "The tray icon opens the window and the menu"));
     }
 
-    /// <summary>Сменить язык: окно пересоздаётся на том же месте и на той же вкладке, меню трея получает новые подписи.</summary>
+    /// <summary>Change the language: the window is recreated in the same place and on the same tab, the tray menu gets new labels.</summary>
     public void SetLanguage(string? language)
     {
         Settings.Language = language;
@@ -217,7 +217,7 @@ public partial class App : Application
         RefreshHdrState();
     }
 
-    // ---------------- Состояние HDR ----------------
+    // ---------------- HDR state ----------------
 
     public void RefreshHdrState()
     {
@@ -232,7 +232,7 @@ public partial class App : Application
         window?.UpdateDisplays(displays);
     }
 
-    /// <summary>Переключить HDR вручную на мониторах с авто-HDR (или на всех, если таких нет).</summary>
+    /// <summary>Toggle HDR manually on displays with auto HDR (or on all of them if there are none).</summary>
     public async Task ToggleHdrAsync(string? onlyKey = null)
     {
         try
@@ -268,7 +268,7 @@ public partial class App : Application
         window?.LoadSettings();
     }
 
-    // ---------------- Игры ----------------
+    // ---------------- Games ----------------
 
     async Task StartupScanAsync()
     {
@@ -299,7 +299,7 @@ public partial class App : Application
             scanning = false;
             ClearBusy();
         }
-        // Не ждём проверку HDR: она идёт минутами, а кнопка поиска должна освободиться сразу
+        // Do not wait for the HDR check: it takes minutes, and the search button must be free right away
         _ = RefreshHdrInfoAsync(force: false);
     }
 
@@ -348,7 +348,7 @@ public partial class App : Application
         Games.Save();
     }
 
-    /// <summary>Проверки идут по очереди: «Проверить HDR заново» во время другой проверки не теряется.</summary>
+    /// <summary>Checks run one after another: “Recheck HDR” during another check is not lost.</summary>
     public Task RefreshHdrInfoAsync(bool force, IReadOnlyList<GameRecord>? only = null) =>
         hdrRefresh = RefreshHdrInfoAfterAsync(hdrRefresh, force, only);
 
@@ -404,9 +404,9 @@ public partial class App : Application
         Status.BusyText = "";
     }
 
-    // ---------------- Права и выход ----------------
+    // ---------------- Rights and exit ----------------
 
-    /// <summary>Перезапуск с правами администратора: «Ждать HDR» сможет приостановить и игру, запущенную с правами администратора.</summary>
+    /// <summary>Restart with administrator rights: “Wait for HDR” can then hold games that run as administrator too.</summary>
     public void RestartElevated()
     {
         if (TaskInstaller.RunElevated("--wait", wait: false) != 0) return;

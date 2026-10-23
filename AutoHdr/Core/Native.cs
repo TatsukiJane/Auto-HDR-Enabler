@@ -3,7 +3,7 @@ using Microsoft.Win32.SafeHandles;
 
 namespace AutoHdr.Core;
 
-/// <summary>P/Invoke: Display Configuration API (HDR) и работа с процессами.</summary>
+/// <summary>P/Invoke: Display Configuration API (HDR) and process control.</summary>
 public static class Native
 {
     public const uint QDC_ONLY_ACTIVE_PATHS = 0x2;
@@ -116,7 +116,7 @@ public static class Native
         public uint ActiveColorMode;
     }
 
-    /// <summary>Общая раскладка для SET_HDR_STATE и SET_ADVANCED_COLOR_STATE: заголовок + 32-битное значение.</summary>
+    /// <summary>Shared layout for SET_HDR_STATE and SET_ADVANCED_COLOR_STATE: header + 32-bit value.</summary>
     [StructLayout(LayoutKind.Sequential)]
     public struct SetState
     {
@@ -143,7 +143,7 @@ public static class Native
     [DllImport("user32.dll")]
     public static extern int DisplayConfigSetDeviceInfo(ref SetState request);
 
-    // ---- Процессы ----
+    // ---- Processes ----
 
     public const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
     public const uint PROCESS_SUSPEND_RESUME = 0x0800;
@@ -171,17 +171,17 @@ public static class Native
     [DllImport("advapi32.dll", SetLastError = true)]
     public static extern bool OpenProcessToken(IntPtr processHandle, uint desiredAccess, out IntPtr tokenHandle);
 
-    // ---- Файлы ----
+    // ---- Files ----
 
-    public const uint FILE_LIST_DIRECTORY = 0x0001;             // без права чтения или записи Windows не проверяет режим совместного доступа
-    public const uint FILE_FLAG_BACKUP_SEMANTICS = 0x02000000;  // нужен, чтобы открыть папку
+    public const uint FILE_LIST_DIRECTORY = 0x0001;             // without read or write access Windows does not check the share mode
+    public const uint FILE_FLAG_BACKUP_SEMANTICS = 0x02000000;  // needed to open a folder
     public const uint FILE_FLAG_OPEN_REPARSE_POINT = 0x00200000;
 
     [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode, EntryPoint = "CreateFileW")]
     public static extern SafeFileHandle CreateFile(string fileName, uint desiredAccess, FileShare shareMode, IntPtr securityAttributes,
         FileMode creationDisposition, uint flagsAndAttributes, IntPtr templateFile);
 
-    // ---- Прочее ----
+    // ---- Other ----
 
     public const int ATTACH_PARENT_PROCESS = -1;
 

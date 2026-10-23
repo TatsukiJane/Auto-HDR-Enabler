@@ -7,7 +7,7 @@ public static class Program
     [STAThread]
     public static int Main(string[] args)
     {
-        // --data <папка>: отдельная папка настроек (для тестов). Должен идти первым, до обращения к AppPaths.DataDir.
+        // --data <folder>: a separate settings folder (for tests). Must come first, before AppPaths.DataDir is accessed.
         if (args.Length >= 2 && args[0].Equals("--data", StringComparison.OrdinalIgnoreCase))
         {
             AppPaths.DataDirOverride = args[1];

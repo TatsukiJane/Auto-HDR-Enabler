@@ -7,8 +7,8 @@ using AutoHdr.Core;
 namespace AutoHdr.UI;
 
 /// <summary>
-/// Служебный режим --snapshot &lt;папка&gt;: рисует каждую вкладку окна в PNG без показа на экране.
-/// Нужен для проверки вёрстки без участия пользователя.
+/// Service mode --snapshot &lt;folder&gt;: renders every window tab to PNG without showing it on screen.
+/// Used to check the layout without the user.
 /// </summary>
 public static class Snapshot
 {
@@ -39,7 +39,7 @@ public static class Snapshot
             var visual = new DrawingVisual();
             using (var dc = visual.RenderOpen())
             {
-                // У Fluent-окна фон прозрачный (Mica), подставляем цвет фона темы
+                // A Fluent window has a transparent background (Mica), so paint the theme background color
                 var background = window.TryFindResource("ApplicationBackgroundBrush") as Brush
                                  ?? window.TryFindResource("SolidBackgroundFillColorBaseBrush") as Brush
                                  ?? Brushes.White;

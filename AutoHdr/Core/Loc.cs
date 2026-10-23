@@ -3,17 +3,17 @@ using System.Globalization;
 namespace AutoHdr.Core;
 
 /// <summary>
-/// Язык интерфейса и журнала: русский или английский. Строки лежат парами прямо в коде: <c>Loc.T("Игры", "Games")</c>,
-/// в разметке — <c>{ui:Tr 'Игры', 'Games'}</c>.
+/// UI and log language: Russian or English. Strings live in pairs right in the code: <c>Loc.T("Игры", "Games")</c>,
+/// in markup — <c>{ui:Tr 'Игры', 'Games'}</c>.
 /// </summary>
 public static class Loc
 {
-    /// <summary>Пока настройки не прочитаны (--install-task, --exit), язык берётся из Windows.</summary>
+    /// <summary>Until the settings are read (--install-task, --exit), the language comes from Windows.</summary>
     public static bool English { get; private set; } = !WindowsPrefersRussian();
 
     public static CultureInfo Culture => CultureInfo.GetCultureInfo(English ? "en-US" : "ru-RU");
 
-    /// <summary>"ru", "en" или null — как в Windows.</summary>
+    /// <summary>"ru", "en" or null — same as Windows.</summary>
     public static void Use(string? language) => English = language switch
     {
         "ru" => false,
@@ -23,7 +23,7 @@ public static class Loc
 
     public static string T(string ru, string en) => English ? en : ru;
 
-    // Русский и там, где Windows на языке страны, в которой русским обычно владеют лучше, чем английским
+    // Russian also where Windows is in the language of a country where people usually know Russian better than English
     static bool WindowsPrefersRussian() =>
         CultureInfo.CurrentUICulture.TwoLetterISOLanguageName is "ru" or "be" or "kk" or "ky" or "tg";
 }

@@ -20,8 +20,8 @@ public static class HdrRules
     };
 
     /// <summary>
-    /// Итоговый статус: Steam или PCGamingWiki подтверждают HDR → «Есть» и авто-HDR включается сам.
-    /// PCGamingWiki «hackable» или только упоминания в файлах → «Возможно», решает пользователь.
+    /// Final status: Steam or PCGamingWiki confirm HDR → “Yes”, and auto HDR turns on by itself.
+    /// PCGamingWiki “hackable” or only mentions in the files → “Maybe”, the user decides.
     /// </summary>
     public static void Apply(GameRecord game)
     {
@@ -34,7 +34,7 @@ public static class HdrRules
         if (sources.Count > 0) status = HdrSupport.Yes;
         else if (pcgw == HdrSupport.No) { status = HdrSupport.No; sources.Add("PCGamingWiki"); }
         else if (pcgw == HdrSupport.Maybe) { status = HdrSupport.Maybe; sources.Add("PCGamingWiki"); }
-        else if (!string.IsNullOrEmpty(game.FileMarkers)) { status = HdrSupport.Maybe; sources.Add("файлы игры"); }
+        else if (!string.IsNullOrEmpty(game.FileMarkers)) { status = HdrSupport.Maybe; sources.Add("game files"); }
         else status = HdrSupport.Unknown;
 
         game.HdrSources = string.Join(", ", sources);
@@ -44,27 +44,27 @@ public static class HdrRules
     }
 }
 
-/// <summary>Проверяет поддержку HDR по трём источникам параллельно, с ограничением частоты запросов.</summary>
+/// <summary>Checks HDR support with three sources in parallel, with request rate limits.</summary>
 public sealed partial class HdrInfoService
 {
     const string PcgwApi = "https://www.pcgamingwiki.com/w/api.php";
     static readonly HttpClient Http = CreateClient();
 
     readonly Throttle steamThrottle = new(TimeSpan.FromMilliseconds(1500));
-    readonly Throttle pcgwThrottle = new(TimeSpan.FromMilliseconds(1100)); // лимит PCGamingWiki: 60 запросов в минуту
+    readonly Throttle pcgwThrottle = new(TimeSpan.FromMilliseconds(1100)); // PCGamingWiki limit: 60 requests per minute
 
     static HttpClient CreateClient()
     {
         var client = new HttpClient(new SocketsHttpHandler { AutomaticDecompression = DecompressionMethods.All })
         {
             Timeout = TimeSpan.FromSeconds(20),
-            MaxResponseContentBufferSize = 8_000_000, // страница PCGamingWiki — до 2 МБ, больше не ждём
+            MaxResponseContentBufferSize = 8_000_000, // a PCGamingWiki page is up to 2 MB, nothing larger is expected
         };
         client.DefaultRequestHeaders.UserAgent.ParseAdd("AutoHdrEnabler/1.0 (Windows desktop utility; automatic HDR switching)");
         return client;
     }
 
-    /// <param name="ui">Выполняет действие в потоке интерфейса: записи игр меняются только там.</param>
+    /// <param name="ui">Runs an action on the UI thread: game records change only there.</param>
     public async Task RefreshAsync(IReadOnlyList<GameRecord> games, bool online, Action<Action> ui,
         IProgress<(int Done, int Total)>? progress)
     {
@@ -98,7 +98,7 @@ public sealed partial class HdrInfoService
         });
     }
 
-    // ---------------- Steam Store: категория 61 «HDR available» ----------------
+    // ---------------- Steam Store: category 61 “HDR available” ----------------
 
     async Task SteamPassAsync(IReadOnlyList<GameRecord> games, Action<Action> ui, Action<GameRecord> finished,
         ConcurrentDictionary<GameRecord, bool> failed)
@@ -109,7 +109,7 @@ public sealed partial class HdrInfoService
             try
             {
                 if (game.Source != GameSources.Steam || game.StoreId == null) continue;
-                // Пропущенную из-за сети игру проверим в следующий раз, а не через 30 дней
+                // A game skipped because of the network is checked next time, not in 30 days
                 if (errorsInRow >= 3) { failed[game] = true; continue; }
                 var flag = await SteamHasHdrAsync(game.StoreId);
                 ui(() => { game.SteamHdrFlag = flag; HdrRules.Apply(game); });
@@ -142,7 +142,7 @@ public sealed partial class HdrInfoService
             c.TryGetProperty("id", out var id) && id.ValueKind == JsonValueKind.Number && id.GetInt32() == 61);
     }
 
-    // ---------------- PCGamingWiki: поле hdr в шаблоне {{Video}} ----------------
+    // ---------------- PCGamingWiki: the hdr field in the {{Video}} template ----------------
 
     async Task PcgwPassAsync(IReadOnlyList<GameRecord> games, Action<Action> ui, Action<GameRecord> finished,
         ConcurrentDictionary<GameRecord, bool> failed)
@@ -193,7 +193,7 @@ public sealed partial class HdrInfoService
             using var response = await Http.GetAsync($"{PcgwApi}?{query}&format=json");
             if (response.StatusCode == HttpStatusCode.TooManyRequests && attempt == 0)
             {
-                await Task.Delay(TimeSpan.FromSeconds(61)); // PCGamingWiki блокирует IP на 60 с
+                await Task.Delay(TimeSpan.FromSeconds(61)); // PCGamingWiki blocks the IP for 60 s
                 continue;
             }
             response.EnsureSuccessStatusCode();
@@ -319,7 +319,7 @@ public sealed partial class HdrInfoService
     [GeneratedRegex("[™®©]")]
     private static partial Regex TrademarkChars();
 
-    // ---------------- Файлы игры: упоминания настроек HDR в exe ----------------
+    // ---------------- Game files: mentions of HDR settings in the exe ----------------
 
     static readonly string[] Markers = ["PaperWhite", "paper_white", "PeakBrightness", "HDR10", "ST2084", "scRGB", "r.HDR.EnableHDROutput"];
 
@@ -360,7 +360,7 @@ public sealed partial class HdrInfoService
 
     static List<string> CandidateExes(GameRecord game)
     {
-        // Пути \\сервер\… и \\.\устройство не читаем: список игр правит обычный пользователь, а читать может копия с правами администратора
+        // Paths like \\server\… and \\.\device are not read: a regular user edits the game list, and the elevated copy may read it
         if (game.ExePath != null) return !IsUncOrDevice(game.ExePath) && File.Exists(game.ExePath) ? [game.ExePath] : [];
         if (game.InstallDir == null || IsUncOrDevice(game.InstallDir) || !Directory.Exists(game.InstallDir)) return [];
 

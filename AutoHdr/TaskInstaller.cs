@@ -8,8 +8,8 @@ using AutoHdr.Core;
 namespace AutoHdr;
 
 /// <summary>
-/// Автозапуск через планировщик заданий с наивысшими правами:
-/// приложение стартует при входе в Windows с правами администратора и без окна UAC.
+/// Autostart through Task Scheduler with the highest privileges:
+/// the app starts at Windows sign-in with administrator rights and without a UAC prompt.
 /// </summary>
 public static class TaskInstaller
 {
@@ -17,7 +17,7 @@ public static class TaskInstaller
 
     public static bool IsInstalled() => RunSchtasks($"/Query /TN \"{TaskName}\"") == 0;
 
-    /// <summary>Установить или удалить задачу. Без прав администратора перезапускает себя через UAC.</summary>
+    /// <summary>Install or remove the task. Without administrator rights, restarts itself through UAC.</summary>
     public static bool SetInstalled(bool install)
     {
         var arg = install ? "--install-task" : "--uninstall-task";
@@ -25,10 +25,10 @@ public static class TaskInstaller
         return RunElevated(arg) == 0;
     }
 
-    /// <summary>Вызывается только с правами администратора.</summary>
+    /// <summary>Called only with administrator rights.</summary>
     public static int Install()
     {
-        // Задача с правами администратора запускает копию из Program Files: папку сборки или загрузки может изменить обычный пользователь
+        // The elevated task runs the copy in Program Files: a regular user can change the build or download folder
         var exe = AppPaths.InstalledExe;
         try
         {
@@ -37,8 +37,8 @@ public static class TaskInstaller
                 var target = Path.GetDirectoryName(exe)!;
                 Directory.CreateDirectory(target);
                 File.Copy(AppPaths.ExePath, exe, overwrite: true);
-                // Self-contained-сборка: родные библиотеки WPF лежат рядом с exe. Только они, а не всё подряд из папки загрузки:
-                // посторонняя DLL в Program Files загрузилась бы в процесс с правами администратора
+                // Self-contained build: the WPF native libraries lie next to the exe. Copy only them, not everything from the download folder:
+                // a stray DLL in Program Files would be loaded into the elevated process
                 foreach (var dll in Directory.GetFiles(Path.GetDirectoryName(AppPaths.ExePath)!, "*_cor3.dll"))
                     File.Copy(dll, Path.Combine(target, Path.GetFileName(dll)), overwrite: true);
             }
@@ -49,7 +49,7 @@ public static class TaskInstaller
             return -1;
         }
 
-        // Не в %TEMP% пользователя: там файл до чтения schtasks может подменить обычный процесс
+        // Not in the user's %TEMP%: there a regular process could replace the file before schtasks reads it
         var file = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Temp", $"AutoHdrTask-{Guid.NewGuid():N}.xml");
         try
         {
@@ -72,7 +72,7 @@ public static class TaskInstaller
         return code;
     }
 
-    /// <summary>Запускает копию приложения с правами администратора. -1, если пользователь отказался в UAC.</summary>
+    /// <summary>Starts a copy of the app with administrator rights. -1 if the user declined in UAC.</summary>
     public static int RunElevated(string args, bool wait = true)
     {
         try
@@ -89,7 +89,7 @@ public static class TaskInstaller
         }
         catch (Win32Exception)
         {
-            return -1; // отмена в окне UAC
+            return -1; // cancelled in the UAC prompt
         }
     }
 
@@ -152,7 +152,7 @@ public static class TaskInstaller
     {
         try
         {
-            // Полный путь: по короткому имени Windows сначала ищет программу в папке приложения
+            // Full path: for a short name Windows first looks for the program in the app folder
             using var process = Process.Start(new ProcessStartInfo(Path.Combine(Environment.SystemDirectory, "schtasks.exe"), args)
             {
                 UseShellExecute = false,

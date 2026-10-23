@@ -11,7 +11,7 @@ public static class AppPaths
 {
     static readonly Lazy<string> dataDir = new(CreateDataDir);
 
-    /// <summary>Папка из аргумента --data. Задаётся в Program.Main до первого обращения к <see cref="DataDir"/>.</summary>
+    /// <summary>Folder from the --data argument. Set in Program.Main before the first access to <see cref="DataDir"/>.</summary>
     public static string? DataDirOverride { get; set; }
 
     public static string DataDir => dataDir.Value;
@@ -21,22 +21,22 @@ public static class AppPaths
     public static string LogFile => Path.Combine(DataDir, "log.txt");
     public static string ExePath => Environment.ProcessPath ?? Path.Combine(AppContext.BaseDirectory, "AutoHdr.exe");
 
-    /// <summary>Копия для автозапуска: в Program Files её не может подменить обычный пользователь.</summary>
+    /// <summary>Copy for autostart: in Program Files a regular user cannot replace it.</summary>
     public static string InstalledExe =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Auto HDR", "AutoHdr.exe");
 
-    /// <summary>Дескриптор папки данных у копии с правами администратора: пока он открыт, папку не переименовать.</summary>
+    /// <summary>Handle to the data folder held by the elevated copy: while it is open, the folder cannot be renamed.</summary>
     public static Microsoft.Win32.SafeHandles.SafeFileHandle? DataDirLock { get; private set; }
 
     static string CreateDataDir()
     {
-        // AUTOHDR_DATA_DIR — отдельная папка данных для тестов. С правами администратора не читаем: окружение задаёт обычный пользователь
+        // AUTOHDR_DATA_DIR is a separate data folder for tests. Not read with administrator rights: a regular user sets the environment
         var custom = DataDirOverride ?? (Elevation.IsElevated ? null : Environment.GetEnvironmentVariable("AUTOHDR_DATA_DIR"));
         var dir = !string.IsNullOrWhiteSpace(custom)
             ? custom
             : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AutoHdr");
         Directory.CreateDirectory(dir);
-        // Без FILE_SHARE_DELETE папку нельзя переименовать и поставить на её место ссылку
+        // Without FILE_SHARE_DELETE the folder cannot be renamed and replaced with a link
         if (Elevation.IsElevated)
             DataDirLock = Native.CreateFile(dir, Native.FILE_LIST_DIRECTORY, FileShare.ReadWrite, IntPtr.Zero, FileMode.Open,
                 Native.FILE_FLAG_BACKUP_SEMANTICS | Native.FILE_FLAG_OPEN_REPARSE_POINT, IntPtr.Zero);
@@ -44,9 +44,9 @@ public static class AppPaths
     }
 
     /// <summary>
-    /// Копия с правами администратора не читает и не пишет через reparse point (соединение, символическую ссылку)
-    /// ни в самой папке данных, ни в её файлах: папкой владеет обычный пользователь.
-    /// shortcut: между проверкой и записью остаётся гонка; закрыть её можно только папкой, куда обычный пользователь не пишет
+    /// The elevated copy does not read or write through a reparse point (junction, symbolic link)
+    /// in the data folder itself or in its files: the folder belongs to a regular user.
+    /// shortcut: a race remains between the check and the write; only a folder a regular user cannot write to closes it
     /// </summary>
     public static void EnsureNoReparsePoint(params string[] paths)
     {
@@ -65,8 +65,8 @@ public static class AppPaths
 }
 
 /// <summary>
-/// Именованные объекты для связи копий приложения. Права доступа заданы явно:
-/// копия с правами администратора создаёт объекты, которые иначе не открыть из обычного процесса.
+/// Named objects that connect copies of the app. Access rights are set explicitly:
+/// the elevated copy creates objects that a regular process could not open otherwise.
 /// </summary>
 public static class InstanceSignals
 {
@@ -92,7 +92,7 @@ public static class InstanceSignals
         return System.Threading.EventWaitHandleAcl.Create(false, EventResetMode.AutoReset, name, out _, security);
     }
 
-    /// <summary>Подать сигнал работающей копии. false, если она не запущена.</summary>
+    /// <summary>Signal the running copy. false if it is not running.</summary>
     public static bool Signal(string name)
     {
         try
@@ -116,8 +116,8 @@ public static class InstanceSignals
 }
 
 /// <summary>
-/// Диагностика запуска: если рядом с exe лежит файл trace.on (или AUTOHDR_TRACE=1),
-/// этапы старта пишутся в trace-&lt;pid&gt;.txt рядом с exe. По умолчанию выключена.
+/// Startup diagnostics: if a trace.on file lies next to the exe (or AUTOHDR_TRACE=1),
+/// startup stages are written to trace-&lt;pid&gt;.txt next to the exe. Off by default.
 /// </summary>
 public static class StartupTrace
 {
@@ -176,7 +176,7 @@ public static class Log
             }
             catch (Exception ex)
             {
-                // Журнал не должен ронять приложение: второй процесс (обёртка --launch) может держать файл.
+                // The log must not crash the app: a second process (the --launch wrapper) may hold the file.
                 StartupTrace.Mark("log append failed: " + ex);
             }
         }
@@ -252,7 +252,7 @@ public static class Elevation
 
 public static class PathUtil
 {
-    /// <summary>Полный путь без завершающего слэша или null, если путь некорректный.</summary>
+    /// <summary>Full path without a trailing slash, or null if the path is invalid.</summary>
     public static string? NormalizeDir(string? path)
     {
         if (string.IsNullOrWhiteSpace(path)) return null;

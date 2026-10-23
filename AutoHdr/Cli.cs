@@ -4,14 +4,14 @@ using AutoHdr.Core;
 
 namespace AutoHdr;
 
-/// <summary>Режимы без окна: обёртка для параметров запуска и управление HDR из консоли.</summary>
+/// <summary>Modes without a window: the launch options wrapper and HDR control from the console.</summary>
 public static class Cli
 {
     static readonly TimeSpan ConfirmTimeout = TimeSpan.FromSeconds(6);
 
     /// <summary>
     /// AutoHdr.exe --launch %command%
-    /// Включает HDR до старта игры, ждёт закрытия всех её процессов и возвращает прежний режим.
+    /// Turns HDR on before the game starts, waits until all its processes exit and restores the previous mode.
     /// </summary>
     public static int Launch(string[] command)
     {
@@ -56,7 +56,7 @@ public static class Cli
             exitCode = 1;
         }
 
-        // Лаунчер мог передать управление другому процессу из папки игры: ждём, пока закроются все
+        // The launcher may have handed over to another process from the game folder: wait until all of them exit
         var root = GameRoot(exe);
         var grace = TimeSpan.FromSeconds(Math.Clamp(settings.ExitDelay ? settings.ExitDelaySec : 0, 3, 600));
         var alive = new HashSet<uint>();
@@ -104,13 +104,13 @@ public static class Cli
         }
         catch (Win32Exception)
         {
-            // Не exe (ярлык, bat, ссылка): отдаём оболочке Windows
+            // Not an exe (shortcut, bat, URL): hand it to the Windows shell
             info.UseShellExecute = true;
             return Process.Start(info);
         }
     }
 
-    /// <summary>Для Steam — вся папка игры в steamapps\common, иначе папка exe.</summary>
+    /// <summary>For Steam, the whole game folder in steamapps\common, otherwise the exe folder.</summary>
     static string GameRoot(string exe)
     {
         const string marker = @"\steamapps\common\";
@@ -125,7 +125,7 @@ public static class Cli
 
     /// <summary>
     /// AutoHdr.exe --hdr [status|on|off|toggle]
-    /// Код выхода: 0 — HDR включён, 1 — выключен, 2 — HDR не поддерживается, 3 — ошибка.
+    /// Exit code: 0 — HDR on, 1 — off, 2 — HDR not supported, 3 — error.
     /// </summary>
     public static int Hdr(string[] args)
     {

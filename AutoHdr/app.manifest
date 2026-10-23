@@ -4,8 +4,8 @@
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v2">
     <security>
       <requestedPrivileges xmlns="urn:schemas-microsoft-com:asm.v3">
-        <!-- asInvoker: обёртка для параметров запуска Steam не должна вызывать UAC.
-             Права администратора приложение получает через задачу планировщика. -->
+        <!-- asInvoker: the Steam launch options wrapper must not trigger UAC.
+             Administrator rights come through the Task Scheduler task. -->
         <requestedExecutionLevel level="asInvoker" uiAccess="false" />
       </requestedPrivileges>
     </security>

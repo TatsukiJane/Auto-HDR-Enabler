@@ -14,17 +14,17 @@
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <Version>1.0.8</Version>
     <Product>Auto HDR</Product>
-    <Description>Автоматически включает HDR в Windows при запуске игр</Description>
+    <Description>Turns HDR on in Windows when games start</Description>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
-    <!-- WPF0001: Fluent-тема (ThemeMode), WFO5001: тёмный режим WinForms для меню трея -->
-    <!-- WFO0003: DPI задан в манифесте сознательно, им управляет WPF -->
+    <!-- WPF0001: Fluent theme (ThemeMode), WFO5001: WinForms dark mode for the tray menu -->
+    <!-- WFO0003: DPI is set in the manifest on purpose, WPF manages it -->
     <NoWarn>$(NoWarn);WPF0001;WFO5001;WFO0003;SYSLIB1054</NoWarn>
-    <!-- Трей работает с правами администратора, а DOTNET_STARTUP_HOOKS задаёт обычный пользователь -->
+    <!-- The tray runs with administrator rights, while DOTNET_STARTUP_HOOKS is set by a regular user -->
     <StartupHookSupport>false</StartupHookSupport>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- WinForms нужен только для значка в трее: убираем его глобальные using, чтобы не конфликтовал с WPF -->
+    <!-- WinForms is only needed for the tray icon: remove its global usings so it does not clash with WPF -->
     <Using Remove="System.Windows.Forms" />
     <Using Remove="System.Drawing" />
   </ItemGroup>

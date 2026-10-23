@@ -8,7 +8,7 @@ using AutoHdr.Library;
 
 namespace AutoHdr.UI;
 
-/// <summary>Строка вкладки «Мониторы»: запись из реестра мониторов плюс текущее состояние.</summary>
+/// <summary>A row of the Displays tab: a display registry record plus the current state.</summary>
 public sealed class MonitorRow : Observable
 {
     readonly Action<string, bool> setAuto;
@@ -44,7 +44,7 @@ public sealed class MonitorRow : Observable
         : !HdrSupported ? Loc.T("HDR не поддерживается", "HDR not supported")
         : HdrOn ? Loc.T("HDR включён", "HDR on") : Loc.T("HDR выключен", "HDR off");
 
-    /// <summary>Обновить флажок значением из реестра мониторов, не записывая его обратно.</summary>
+    /// <summary>Update the checkbox with the value from the display registry without writing it back.</summary>
     public void SetAutoSilently(bool value)
     {
         silent = true;
@@ -60,7 +60,7 @@ public sealed class MonitorRow : Observable
     }
 }
 
-/// <summary>Строка на языке интерфейса в разметке: <c>{ui:Tr 'Игры', 'Games'}</c>. При смене языка окно пересоздаётся.</summary>
+/// <summary>A string in the UI language in markup: <c>{ui:Tr 'Игры', 'Games'}</c>. The window is recreated when the language changes.</summary>
 [MarkupExtensionReturnType(typeof(string))]
 public sealed class TrExtension(string ru, string en) : MarkupExtension
 {

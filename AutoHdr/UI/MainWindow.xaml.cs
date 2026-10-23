@@ -29,8 +29,8 @@ public partial class MainWindow : Window
         InitializeComponent();
         DataContext = app.Status;
 
-        // Подсказки заголовков заданы в разметке через ToolTipService.ToolTip столбца.
-        // Привязка из стиля не работает: заголовок получает Column позже и без уведомления
+        // Header tooltips are set in markup through the column's ToolTipService.ToolTip.
+        // A binding from the style does not work: the header gets Column later and without a notification
         var headerStyle = TryFindResource(typeof(DataGridColumnHeader)) as Style;
         foreach (var column in GamesGrid.Columns.Concat(MonitorsGrid.Columns))
             if (ToolTipService.GetToolTip(column) is { } tip)
@@ -51,14 +51,14 @@ public partial class MainWindow : Window
         Log.LineAdded += OnLogLine;
         Loaded += (_, _) => JournalBox.ScrollToEnd();
 
-        // Копия из Program Files не меняет путь при пересборке и есть, пока включён или был включён автозапуск
+        // The Program Files copy keeps its path across rebuilds and exists while autostart is or was on
         var launcher = File.Exists(AppPaths.InstalledExe) ? AppPaths.InstalledExe : AppPaths.ExePath;
         LaunchCommandBox.Text = $"\"{launcher}\" --launch %command%";
         VersionText.Text = $"Auto HDR {typeof(MainWindow).Assembly.GetName().Version?.ToString(3)} · {Loc.T("данные", "data")}: {AppPaths.DataDir}";
         LoadSettings();
     }
 
-    // ---------------- Игры ----------------
+    // ---------------- Games ----------------
 
     void ApplyDefaultSort()
     {
@@ -232,7 +232,7 @@ public partial class MainWindow : Window
 
     List<GameRecord> SelectedGames() => GamesGrid.SelectedItems.OfType<GameRecord>().ToList();
 
-    // ---------------- Мониторы ----------------
+    // ---------------- Displays ----------------
 
     public void RefreshMonitors() => UpdateDisplays(HdrControl.GetDisplays());
 
@@ -252,7 +252,7 @@ public partial class MainWindow : Window
             }
             var display = displays.FirstOrDefault(d => d.Key == record.Key);
             row.Name = record.Name;
-            // У виртуального дисплея тип подключения и так «Виртуальный»: показываем один раз
+            // For a virtual display the connection type already says “Virtual”: show it once
             var connection = record.IsVirtual ? Loc.T("Виртуальный дисплей", "Virtual display") : record.Connection;
             var kind = !record.IsVirtual && MonitorRegistry.LooksLikeTv(record.Name) ? Loc.T("телевизор", "TV") : null;
             row.Details = string.Join(" · ", new[] { connection, record.EdidId, kind }.Where(s => !string.IsNullOrEmpty(s)));
@@ -277,7 +277,7 @@ public partial class MainWindow : Window
         if ((sender as FrameworkElement)?.DataContext is MonitorRow row) app.Monitors.Forget(row.Key);
     }
 
-    // ---------------- Настройки ----------------
+    // ---------------- Settings ----------------
 
     public void LoadSettings()
     {
@@ -359,7 +359,7 @@ public partial class MainWindow : Window
     {
         if (loadingSettings) return;
         string? language = LanguageBox.SelectedIndex switch { 1 => "ru", 2 => "en", _ => null };
-        // Окно пересоздаётся на новом языке: не закрываем его посреди его же обработчика
+        // The window is recreated in the new language: do not close it in the middle of its own handler
         Dispatcher.BeginInvoke(() => app.SetLanguage(language));
     }
 
@@ -370,7 +370,7 @@ public partial class MainWindow : Window
         app.Settings.Save();
     }
 
-    // Сохраняем на каждый ввод: LostFocus не срабатывает, если окно закрыли прямо из поля
+    // Save on every keystroke: LostFocus does not fire if the window is closed right from the field
     void ExitDelaySec_Changed(object sender, TextChangedEventArgs e)
     {
         if (loadingSettings || !int.TryParse(ExitDelayBox.Text.Trim(), out var seconds)) return;
@@ -395,7 +395,7 @@ public partial class MainWindow : Window
         if (File.Exists(AppPaths.LogFile)) OpenUnelevated(AppPaths.LogFile);
     }
 
-    // ---------------- Журнал ----------------
+    // ---------------- Log ----------------
 
     void AppendJournal(string line)
     {
@@ -408,12 +408,12 @@ public partial class MainWindow : Window
 
     void ClearJournal_Click(object sender, RoutedEventArgs e) => JournalBox.Clear();
 
-    // ---------------- Окно ----------------
+    // ---------------- Window ----------------
 
     /// <summary>
-    /// Открыть папку, файл или ссылку от имени обычного пользователя:
-    /// через explorer.exe, чтобы браузер не унаследовал права администратора.
-    /// Полный путь: по короткому имени Windows сначала ищет программу в папке приложения.
+    /// Open a folder, file or URL as a regular user:
+    /// through explorer.exe, so the browser does not inherit administrator rights.
+    /// Full path: for a short name Windows first looks for the program in the app folder.
     /// </summary>
     static void OpenUnelevated(string target)
     {
@@ -426,7 +426,7 @@ public partial class MainWindow : Window
     void OnMonitorsChanged() => Dispatcher.BeginInvoke(RefreshMonitors);
     void OnLogLine(string line) => Dispatcher.BeginInvoke(() => AppendJournal(line));
 
-    // При смене языка окно пересоздаётся: закрытое не должно держаться за события приложения
+    // The window is recreated when the language changes: a closed one must not hold on to app events
     protected override void OnClosed(EventArgs e)
     {
         app.Games.Games.CollectionChanged -= OnGamesChanged;

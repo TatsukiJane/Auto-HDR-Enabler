@@ -1,4 +1,4 @@
-# Генерирует AutoHdr\Assets\app.ico (PNG-кадры 16–256 px). Запускать из Windows PowerShell 5.1.
+# Generates AutoHdr\Assets\app.ico (PNG frames 16–256 px). Run from Windows PowerShell 5.1.
 param([string]$Out = (Join-Path $PSScriptRoot '..\AutoHdr\Assets\app.ico'))
 Add-Type -AssemblyName System.Drawing
 
@@ -24,7 +24,7 @@ function New-Frame([int]$size) {
     $bg = New-Object System.Drawing.Drawing2D.LinearGradientBrush $rect, $top, $bottom, 90
     $g.FillPath($bg, $path)
 
-    # Полоса «яркости» под текстом: от тёплого к холодному
+    # A “brightness” strip under the text: from warm to cold
     $barRect = New-Object System.Drawing.RectangleF ($size * 0.16), ($size * 0.70), ($size * 0.68), ([Math]::Max(1, $size * 0.07))
     $bar = New-Object System.Drawing.Drawing2D.LinearGradientBrush $barRect, ([System.Drawing.Color]::FromArgb(255, 245, 158, 11)), ([System.Drawing.Color]::FromArgb(255, 236, 72, 153)), 0
     $g.FillRectangle($bar, $barRect)
@@ -63,4 +63,4 @@ for ($i = 0; $i -lt $sizes.Count; $i++) {
 }
 foreach ($f in $frames) { $bw.Write($f) }
 $bw.Close()
-Write-Output "Иконка сохранена: $Out"
+Write-Output "Icon saved: $Out"

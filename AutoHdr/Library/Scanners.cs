@@ -9,7 +9,7 @@ namespace AutoHdr.Library;
 
 public sealed record ScanResult(List<GameRecord> Games, HashSet<string> Sources);
 
-/// <summary>Поиск установленных игр в библиотеках лаунчеров и пользовательских папках.</summary>
+/// <summary>Finds installed games in launcher libraries and custom folders.</summary>
 public static partial class LibraryScanner
 {
     public static ScanResult ScanAll(IEnumerable<string> customFolders)
@@ -27,7 +27,7 @@ public static partial class LibraryScanner
             }
             catch (Exception ex)
             {
-                // Источник не отмечаем просканированным: его игры не пометятся как удалённые
+                // Do not mark the source as scanned: its games are not marked as removed
                 Log.Error(Loc.T($"Не удалось просканировать {GameSources.Display(source)}", $"Could not scan {GameSources.Display(source)}"), ex);
             }
         }
@@ -59,7 +59,7 @@ public static partial class LibraryScanner
         steamPath = PathUtil.NormalizeDir(steamPath) ?? PathUtil.NormalizeDir(@"C:\Program Files (x86)\Steam");
         if (steamPath == null || !Directory.Exists(steamPath)) yield break;
 
-        // Сначала пути из libraryfolders.vdf: в них правильный регистр букв, а SteamPath в реестре записан строчными
+        // Paths from libraryfolders.vdf first: they have the right letter case, while SteamPath in the registry is lowercase
         var libraries = new List<string>();
         var vdf = Path.Combine(steamPath, "steamapps", "libraryfolders.vdf");
         if (File.Exists(vdf))
@@ -266,7 +266,7 @@ public static partial class LibraryScanner
                 }
                 catch
                 {
-                    // имя папки подойдёт
+                    // the folder name will do
                 }
 
                 yield return new GameRecord
@@ -307,7 +307,7 @@ public static partial class LibraryScanner
         }
     }
 
-    // ---------------- Пользовательские папки и exe ----------------
+    // ---------------- Custom folders and exe files ----------------
 
     [GeneratedRegex(@"crash|report|unins|setup|redist|dxsetup|directx|dotnet|prereq|easyanticheat|eac_|battleye|be_service|cefprocess|cefsharp|webhelper|helper|updater|update|patcher|install|bugsplat|crs-|activation|cleanup|touchup|dxwebsetup|oalinst|physx|vulkan|7z|notification",
         RegexOptions.IgnoreCase)]
@@ -316,7 +316,7 @@ public static partial class LibraryScanner
     public static bool IsHelperExe(string fileName) => HelperExe().IsMatch(Path.GetFileNameWithoutExtension(fileName));
 
     /// <summary>
-    /// Папка с одной игрой (exe лежит прямо в ней) или папка с играми (каждая подпапка с exe — отдельная игра).
+    /// A folder with one game (the exe lies right in it) or a folder of games (each subfolder with an exe is a separate game).
     /// </summary>
     public static IEnumerable<GameRecord> ScanFolder(string folder)
     {
@@ -354,7 +354,7 @@ public static partial class LibraryScanner
         }
         catch
         {
-            // имя файла подойдёт
+            // the file name will do
         }
         if (string.IsNullOrWhiteSpace(name) || name.Length > 60) name = Path.GetFileNameWithoutExtension(full);
 

@@ -1,7 +1,7 @@
-# Единообразные переносы строк (работа с разных машин)
+# Consistent line endings (work from different machines)
 * text=auto eol=lf
 
-# Бинарные файлы — без нормализации
+# Binary files: no normalization
 *.ico binary
 *.png binary
 *.jpg binary

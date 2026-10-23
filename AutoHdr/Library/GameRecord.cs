@@ -18,10 +18,10 @@ public static class GameSources
     public const string Folder = "Папка";
     public const string Manual = "Вручную";
 
-    /// <summary>Порядок при дублях: одна и та же папка из двух источников остаётся за первым.</summary>
+    /// <summary>Order for duplicates: the same folder from two sources stays with the first one.</summary>
     public static readonly string[] Priority = [Steam, Gog, Epic, Ea, Ubisoft, Xbox, Rockstar, Folder, Manual];
 
-    /// <summary>Название источника на языке интерфейса: в games.json «Папка» и «Вручную» хранятся по-русски.</summary>
+    /// <summary>Source name in the UI language: games.json stores “Папка” and “Вручную” in Russian, as in older versions.</summary>
     public static string Display(string source) => source switch
     {
         Folder => Loc.T("Папка", "Folder"),
@@ -45,7 +45,7 @@ public sealed class GameRecord : Observable
         set { if (Set(ref field, value)) Raise(nameof(EnabledUi)); }
     }
 
-    /// <summary>Пользователь сам переключал авто-HDR: автоматические правила больше не трогают флаг.</summary>
+    /// <summary>The user toggled auto HDR: automatic rules no longer touch the flag.</summary>
     public bool UserOverride { get; set; }
 
     public bool HoldUntilHdr
@@ -60,7 +60,7 @@ public sealed class GameRecord : Observable
         set { if (Set(ref field, value)) Raise(nameof(SourceText)); }
     }
 
-    // ---- Данные о поддержке HDR ----
+    // ---- HDR support data ----
 
     public HdrSupport Hdr
     {
@@ -86,9 +86,9 @@ public sealed class GameRecord : Observable
         set { if (Set(ref field, value)) Raise(nameof(HdrTooltip)); }
     }
 
-    // ---- Для интерфейса ----
+    // ---- For the UI ----
 
-    /// <summary>Вызывается, когда пользователь сам меняет флаги в таблице.</summary>
+    /// <summary>Raised when the user changes flags in the table.</summary>
     public static event Action<GameRecord>? UserChanged;
 
     [JsonIgnore]

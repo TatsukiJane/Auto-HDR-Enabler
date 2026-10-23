@@ -6,7 +6,7 @@ using Forms = System.Windows.Forms;
 
 namespace AutoHdr.UI;
 
-/// <summary>Значок в трее: показывает режим SDR/HDR, по щелчку открывает окно.</summary>
+/// <summary>Tray icon: shows the SDR/HDR mode and opens the window on click.</summary>
 public sealed class TrayIcon : IDisposable
 {
     readonly Forms.NotifyIcon icon;
@@ -46,7 +46,7 @@ public sealed class TrayIcon : IDisposable
         icon.BalloonTipClicked += (_, _) => app.ShowMainWindow();
     }
 
-    /// <summary>Подписи меню на текущем языке. Переключатель HDR и подсказку значка потом уточняет <see cref="Update"/>.</summary>
+    /// <summary>Menu labels in the current language. <see cref="Update"/> then sets the HDR toggle and the icon tooltip.</summary>
     public void ApplyTexts()
     {
         openItem.Text = Loc.T("Открыть Auto HDR", "Open Auto HDR");
@@ -88,7 +88,7 @@ public sealed class TrayIcon : IDisposable
 
 public static class IconFactory
 {
-    /// <summary>Значок-плашка с коротким текстом, отрисованный под размер значков трея.</summary>
+    /// <summary>A badge icon with short text, drawn at the tray icon size.</summary>
     public static Icon Badge(string text, Color background, Color foreground, int size)
     {
         using var bitmap = new Bitmap(size, size, System.Drawing.Imaging.PixelFormat.Format32bppArgb);

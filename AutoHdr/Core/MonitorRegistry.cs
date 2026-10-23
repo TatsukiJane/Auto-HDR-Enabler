@@ -18,9 +18,9 @@ public sealed class MonitorRegistryData
 }
 
 /// <summary>
-/// Все когда-либо подключённые дисплеи и флаг «Авто-HDR» для каждого.
-/// Флаг включается сам только у первого найденного физического HDR-монитора, который не похож на телевизор.
-/// Телевизоры, виртуальные дисплеи и все дисплеи, подключённые после него, добавляются выключенными.
+/// Every display ever connected and the “Auto HDR” flag for each.
+/// The flag turns on by itself only for the first physical HDR display found that does not look like a TV.
+/// TVs, virtual displays and all displays connected after it are added with the flag off.
 /// </summary>
 public sealed partial class MonitorRegistry
 {
@@ -31,7 +31,7 @@ public sealed partial class MonitorRegistry
 
     public event Action? Changed;
 
-    /// <summary>Монитор узнан по EDID и имени под новым путём устройства: старый ключ, новый ключ.</summary>
+    /// <summary>A display recognized by EDID and name under a new device path: old key, new key.</summary>
     public event Action<string, string>? KeyChanged;
 
     public static MonitorRegistry Load() => new(JsonStore.Load<MonitorRegistryData>(AppPaths.MonitorsFile));
@@ -46,7 +46,7 @@ public sealed partial class MonitorRegistry
         lock (gate) return FindLocked(display)?.AutoHdr == true;
     }
 
-    /// <summary>Дисплеи, на которых приложение имеет право переключать HDR.</summary>
+    /// <summary>Displays where the app may switch HDR.</summary>
     public List<DisplayInfo> Targets(IEnumerable<DisplayInfo> displays) =>
         displays.Where(d => d.HdrSupported && IsAuto(d)).ToList();
 
@@ -103,7 +103,7 @@ public sealed partial class MonitorRegistry
             var record = data.Monitors.FirstOrDefault(m => m.Key == key);
             if (record == null || record.AutoHdr == on) return;
             record.AutoHdr = on;
-            data.Initialized = true; // пользователь сам выбрал мониторы: новые больше не включаются сами
+            data.Initialized = true; // the user picked displays: new ones no longer turn on by themselves
             SaveLocked();
             Log.Info(Loc.T($"Авто-HDR для «{record.Name}» {(on ? "включён" : "выключен")}", $"Auto HDR for “{record.Name}” turned {(on ? "on" : "off")}"));
         }
@@ -120,7 +120,7 @@ public sealed partial class MonitorRegistry
         Changed?.Invoke();
     }
 
-    /// <summary>Телевизоры обычно называют себя «LG TV», «SONY TV», «SAMSUNG», «BRAVIA».</summary>
+    /// <summary>TVs usually call themselves “LG TV”, “SONY TV”, “SAMSUNG”, “BRAVIA”.</summary>
     public static bool LooksLikeTv(string name) =>
         TvName().IsMatch(name)
         || name.Trim().ToUpperInvariant() is "SAMSUNG" or "HISENSE" or "TCL" or "PHILIPS" or "VIZIO" or "PANASONIC" or "TOSHIBA-TV";
@@ -133,7 +133,7 @@ public sealed partial class MonitorRegistry
         var byKey = data.Monitors.FirstOrDefault(m => m.Key == d.Key);
         if (byKey != null) return byKey;
 
-        // Тот же монитор в другом разъёме или после переустановки драйвера: совпадают EDID и имя
+        // The same display on another port or after a driver reinstall: EDID and name match
         if (string.IsNullOrEmpty(d.EdidId)) return null;
         var byEdid = data.Monitors.Where(m => m.EdidId == d.EdidId && m.Name == d.Name).ToList();
         return byEdid.Count == 1 ? byEdid[0] : null;

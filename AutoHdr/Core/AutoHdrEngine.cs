@@ -3,9 +3,9 @@ using AutoHdr.Library;
 namespace AutoHdr.Core;
 
 /// <summary>
-/// Связывает игры, мониторы и процессы: включает HDR при запуске игры с авто-HDR
-/// и возвращает прежний режим, когда все процессы игр закрыты и прошла задержка.
-/// HDR, включённый пользователем вручную, приложение не выключает.
+/// Ties games, displays and processes together: turns HDR on when a game with auto HDR starts
+/// and restores the previous mode when all game processes have exited and the delay has passed.
+/// HDR that the user turned on manually is never turned off by the app.
 /// </summary>
 public sealed class AutoHdrEngine
 {
@@ -25,7 +25,7 @@ public sealed class AutoHdrEngine
         this.monitors = monitors;
         this.settings = settings;
 
-        // Монитор вернулся под другим путём устройства (другой разъём, драйвер, переподключение): PendingRevert идёт за ним
+        // The display came back under another device path (another port, driver, reconnect): PendingRevert follows it
         monitors.KeyChanged += (oldKey, newKey) =>
         {
             lock (gate)
@@ -38,7 +38,7 @@ public sealed class AutoHdrEngine
         };
     }
 
-    /// <summary>Заголовок и текст уведомления.</summary>
+    /// <summary>Notification title and text.</summary>
     public event Action<string, string>? Notify;
     public event Action? StateChanged;
 
@@ -74,7 +74,7 @@ public sealed class AutoHdrEngine
         {
             if (!tracked.Remove(pid, out game)) return;
             gameClosed = !tracked.ContainsValue(game);
-            // Под gate: OnDisplaysChanged не должен вернуть SDR в обход задержки
+            // Under gate: OnDisplaysChanged must not restore SDR bypassing the delay
             if (tracked.Count == 0) ScheduleRevert();
         }
 
@@ -83,9 +83,9 @@ public sealed class AutoHdrEngine
     }
 
     /// <summary>
-    /// Вызывается при каждом опросе мониторов. Если игр нет, возврат не запланирован, а монитор из PendingRevert
-    /// подключён, возвращает прежний режим. Так HDR выключается после сбоя приложения, после игры, которая закрылась,
-    /// пока HDR ещё включался, и на мониторе, которого не было в списке Windows в момент выхода из игры.
+    /// Called on every display poll. If no games run, no revert is scheduled and a display from PendingRevert
+    /// is connected, restores the previous mode. This turns HDR off after an app crash, after a game that exited
+    /// while HDR was still turning on, and on a display that was missing from the Windows list when the game exited.
     /// </summary>
     public void OnDisplaysChanged(IReadOnlyList<DisplayInfo> displays)
     {
@@ -102,7 +102,7 @@ public sealed class AutoHdrEngine
         get { lock (gate) return settings.PendingRevert.Count > 0 && tracked.Count == 0; }
     }
 
-    /// <summary>Пользователь вручную выключил HDR: возвращать больше нечего.</summary>
+    /// <summary>The user turned HDR off manually: nothing left to restore.</summary>
     public void ForgetPending(IEnumerable<string> keys)
     {
         lock (gate)
@@ -131,7 +131,7 @@ public sealed class AutoHdrEngine
             {
                 lock (gate)
                 {
-                    if (!tracked.ContainsKey(pid)) return; // процесс закрылся, пока ждал очереди: HDR ему уже не нужен
+                    if (!tracked.ContainsKey(pid)) return; // the process exited while waiting in the queue: it no longer needs HDR
                 }
 
                 var displays = HdrControl.GetDisplays();
@@ -227,7 +227,7 @@ public sealed class AutoHdrEngine
             if (toDisable.Count > 0)
                 await HdrControl.WaitForStateAsync(toDisable.Select(d => d.Key).ToList(), false, ConfirmTimeout);
 
-            // Монитор, которого сейчас нет (выключен, или Windows не ответила), остаётся в списке до OnDisplaysChanged
+            // A display that is missing now (turned off, or Windows did not answer) stays in the list until OnDisplaysChanged
             lock (gate) settings.PendingRevert.RemoveAll(k => displays.Any(d => d.Key == k));
             settings.Save();
 

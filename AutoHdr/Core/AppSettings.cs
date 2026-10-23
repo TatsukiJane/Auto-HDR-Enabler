@@ -4,10 +4,10 @@ public sealed class AppSettings
 {
     static readonly object Gate = new();
 
-    /// <summary>Ждать ли после закрытия последнего процесса игры, прежде чем вернуть SDR.</summary>
+    /// <summary>Whether to wait after the last game process exits before restoring SDR.</summary>
     public bool ExitDelay { get; set; }
 
-    /// <summary>Сколько секунд ждать, если включена <see cref="ExitDelay"/>.</summary>
+    /// <summary>How many seconds to wait when <see cref="ExitDelay"/> is on.</summary>
     public int ExitDelaySec { get; set; } = 5;
     public bool RestoreAfterExit { get; set; } = true;
     public bool Notifications { get; set; } = true;
@@ -15,16 +15,16 @@ public sealed class AppSettings
     public bool OnlineHdrInfo { get; set; } = true;
     public bool TrayHintShown { get; set; }
 
-    /// <summary>"ru", "en" или null — язык Windows.</summary>
+    /// <summary>"ru", "en" or null — the Windows language.</summary>
     public string? Language { get; set; }
 
-    /// <summary>Папки, добавленные кнопкой «Добавить папку с играми»: пересканируются вместе с библиотеками.</summary>
+    /// <summary>Folders added with the “Add folder” button: rescanned together with the libraries.</summary>
     public List<string> CustomFolders { get; set; } = [];
 
-    /// <summary>Игры из пользовательских папок, которые убрали из списка.</summary>
+    /// <summary>Games from custom folders that were removed from the list.</summary>
     public List<string> IgnoredIds { get; set; } = [];
 
-    /// <summary>Мониторы, на которых HDR включило приложение и ещё не вернуло назад (переживает перезапуск).</summary>
+    /// <summary>Displays where the app turned HDR on and has not turned it back yet (survives a restart).</summary>
     public List<string> PendingRevert { get; set; } = [];
 
     public static AppSettings Load() => JsonStore.Load<AppSettings>(AppPaths.SettingsFile);

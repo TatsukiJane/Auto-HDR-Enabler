@@ -37,8 +37,8 @@ public static class ProcessUtil
     }
 
     /// <summary>
-    /// Приостанавливает только процессы того же пользователя: список игр правит обычный пользователь,
-    /// а копия с правами администратора иначе могла бы приостановить службу или процесс другого пользователя.
+    /// Suspends only processes of the same user: a regular user edits the game list,
+    /// and otherwise the elevated copy could suspend a service or another user's process.
     /// </summary>
     public static bool Suspend(uint pid) => IsOwnProcess(pid) && WithSuspendHandle(pid, h => NtSuspendProcess(h) == 0);
 
@@ -77,9 +77,9 @@ public static class ProcessUtil
 }
 
 /// <summary>
-/// Сообщает о запуске и завершении процессов опросом списка раз в 0,25 с.
-/// События WMI (Win32_ProcessStartTrace) убраны: приходили через 0,2–0,5 с и стоили около 1,5 мс
-/// на каждый запуск любого процесса в системе, а опрос замечает запуск примерно за 0,08 мс.
+/// Reports process starts and exits by polling the process list every 0.25 s.
+/// WMI events (Win32_ProcessStartTrace) were removed: they arrived after 0.2–0.5 s and cost about 1.5 ms
+/// for every start of any process in the system, while polling notices a start in about 0.08 ms.
 /// </summary>
 public sealed class ProcessWatcher : IDisposable
 {
@@ -95,14 +95,14 @@ public sealed class ProcessWatcher : IDisposable
         var initial = ProcessUtil.EnumPids();
         known.UnionWith(initial);
 
-        // Игры, которые уже были запущены до старта приложения
+        // Games that were already running before the app started
         foreach (var pid in initial)
         {
             var path = ProcessUtil.GetPath(pid);
             if (path != null) Raise(() => Started?.Invoke(pid, path));
         }
 
-        // Свой поток, а не Timer: Timer на каждом тике будит ещё поток таймера и пул, это вдвое дороже
+        // A dedicated thread, not a Timer: a Timer wakes the timer thread and the pool on every tick, which costs twice as much
         new Thread(() => { while (!stop.WaitOne(PollMs)) Poll(); }) { IsBackground = true, Name = "ProcessWatcher" }.Start();
     }
 

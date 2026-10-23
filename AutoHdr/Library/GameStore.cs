@@ -6,8 +6,8 @@ namespace AutoHdr.Library;
 public sealed record MergeResult(int Found, int Added, int Removed);
 
 /// <summary>
-/// Список игр. Коллекция меняется только в потоке интерфейса,
-/// поиск игры по пути процесса идёт по неизменяемому снимку и безопасен из любого потока.
+/// The game list. The collection changes only on the UI thread,
+/// matching a game by process path uses an immutable snapshot and is safe from any thread.
 /// </summary>
 public sealed class GameStore
 {
@@ -35,7 +35,7 @@ public sealed class GameStore
 
     void RebuildSnapshot() => snapshot = Games.ToArray();
 
-    /// <summary>Вызывается и из потока интерфейса, и из таймера SaveSoon: без блокировки обе записи делят games.json.tmp.</summary>
+    /// <summary>Called both from the UI thread and from the SaveSoon timer: without a lock both writes share games.json.tmp.</summary>
     public void Save()
     {
         lock (saveGate)
@@ -45,10 +45,10 @@ public sealed class GameStore
         }
     }
 
-    /// <summary>Сохранить с задержкой, чтобы серия кликов по флажкам писала файл один раз.</summary>
+    /// <summary>Save with a delay so that a series of checkbox clicks writes the file once.</summary>
     public void SaveSoon() => saveTimer.Change(700, Timeout.Infinite);
 
-    /// <summary>Игра, к которой относится exe: точное совпадение пути или самая глубокая папка установки.</summary>
+    /// <summary>The game an exe belongs to: exact path match or the deepest install folder.</summary>
     public GameRecord? Match(string exePath)
     {
         GameRecord? best = null;
@@ -67,8 +67,8 @@ public sealed class GameStore
     }
 
     /// <summary>
-    /// Объединяет результат сканирования с текущим списком. Ручные настройки не трогаются.
-    /// Игры из просканированных источников, которых больше нет на диске, помечаются как неустановленные.
+    /// Merges a scan result into the current list. Manual settings are kept.
+    /// Games from scanned sources that are no longer on disk are marked as not installed.
     /// </summary>
     public MergeResult Merge(IReadOnlyList<GameRecord> scanned, IReadOnlySet<string> scannedSources, IEnumerable<string> ignoredIds)
     {
@@ -78,8 +78,8 @@ public sealed class GameStore
         var takenDirs = new List<string>();
         int added = 0;
 
-        // Сначала источники с более высоким приоритетом: дубль по папке достаётся им.
-        // Дублем считается та же папка или вложенная (Rockstar хранит GTA IV в подпапке игры из Steam).
+        // Higher-priority sources first: a folder duplicate goes to them.
+        // A duplicate is the same folder or a nested one (Rockstar keeps GTA IV in a subfolder of the Steam game).
         var ordered = scanned.OrderBy(g => Array.IndexOf(GameSources.Priority, g.Source)).ToList();
         foreach (var found in ordered)
         {
