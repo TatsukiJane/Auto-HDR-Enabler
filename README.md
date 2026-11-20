@@ -60,9 +60,9 @@ Auto HDR changes one thing in Windows: the HDR on and off switch of the displays
 
 **Network**
 
-- The app talks to two sites only. Steam Store (`store.steampowered.com`) gets the Steam AppID of a game. PCGamingWiki (`pcgamingwiki.com`) gets the Steam or GOG ID of a game, or its name
+- The app talks to three sites only. Steam Store (`store.steampowered.com`) gets the Steam AppID of a game. PCGamingWiki (`pcgamingwiki.com`) gets the Steam or GOG ID of a game, or its name. GitHub (`api.github.com`) is asked once at startup for the latest release number
 - No accounts, telemetry, ads, analytics or automatic updates. Nothing about you or your PC is sent
-- You can turn the online check off in Settings. Then only the game files are checked
+- You can turn the online check off in Settings. Then only the game files are checked. The update check has its own switch there
 
 **Administrator rights**
 
@@ -128,6 +128,8 @@ Requirements and limits:
 
 ### Update
 
+At startup the app checks GitHub for a newer release. If there is one, it asks whether to open the download page. Answer no, and it will not remind you about that version again. The app never downloads or installs anything by itself. Turn the check off in Settings with “Check for updates at startup”
+
 Exit Auto HDR from the tray icon menu, extract the new archive and run `AutoHdr.exe --install-task` in its folder. Without the command line: run the new `AutoHdr.exe`, then turn “Start with Windows” off and on again. The copy in Program Files gets updated
 
 ### Uninstall
@@ -186,10 +188,12 @@ Auto HDR — маленькое приложение для Windows 11, кото
 
 - Приложение меняет в Windows только переключатель HDR на отмеченных мониторах, тот же, что в «Параметры → Система → Дисплей», и режим изображения монитора, если вы настроили режим для игр. Разрешение, частоту, цветовые профили и настройки драйвера оно не трогает
 - В игры ничего не внедряет, файлы игр только читает, реестр только читает
-- В сеть ходит только в Steam Store и PCGamingWiki и передаёт номер игры в Steam или GOG либо её название. Ни телеметрии, ни аккаунтов, ни автообновлений. Проверку в интернете можно выключить в настройках
+- В сеть ходит только в Steam Store и PCGamingWiki и передаёт номер игры в Steam или GOG либо её название, а при запуске спрашивает у GitHub номер последней версии. Ни телеметрии, ни аккаунтов, ни автообновлений. Проверку в интернете и проверку обновлений можно выключить в настройках
 - Права администратора нужны только для «Ждать HDR». Чтобы не было окна UAC при каждом входе, приложение запускается через планировщик заданий из `C:\Program Files\Auto HDR`, где его не может подменить обычная программа
 
 **Установка.** Скачайте `AutoHdr-<версия>-win-x64.zip` со страницы [Releases](https://github.com/TatsukiJane/Auto-HDR-Enabler/releases/latest) и распакуйте в любую папку. Ставить .NET не нужно. Программа не подписана, поэтому Windows может показать окно SmartScreen: нажмите «Подробнее», затем «Выполнить в любом случае». Во вкладке «Настройки» включите «Автозапуск при входе в Windows»
+
+**Обновление.** При запуске приложение проверяет, нет ли на GitHub новой версии, и предлагает открыть страницу загрузки. Сами обновления оно не скачивает и не ставит. Распакуйте новый архив и запустите в его папке `AutoHdr.exe --install-task`, чтобы обновить копию в Program Files
 
 **Удаление.** Выключите автозапуск в настройках, закройте Auto HDR через меню значка в трее и удалите папки `C:\Program Files\Auto HDR` и `%LOCALAPPDATA%\AutoHdr`
 

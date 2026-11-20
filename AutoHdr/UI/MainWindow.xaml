@@ -263,6 +263,10 @@
                             <ComboBoxItem Content="English" />
                         </ComboBox>
                     </StackPanel>
+                    <CheckBox x:Name="UpdatesCheck" Content="{ui:Tr 'Проверять обновления при запуске', 'Check for updates at startup'}" Style="{StaticResource SettingCheck}"
+                              Margin="0,14,0,0" Checked="Updates_Changed" Unchecked="Updates_Changed" />
+                    <TextBlock Style="{StaticResource Hint}" Margin="28,2,0,0"
+                               Text="{ui:Tr 'Если на GitHub вышла новая версия, приложение предложит открыть страницу загрузки', 'If a new version is out on GitHub, the app offers to open the download page'}" />
 
                     <TextBlock Text="{ui:Tr 'После игры', 'After the game'}" Style="{StaticResource SectionTitle}" />
                     <CheckBox x:Name="RestoreCheck" Content="{ui:Tr 'Возвращать прежний режим после выхода из игры', 'Restore the previous mode after the game exits'}" Style="{StaticResource SettingCheck}"

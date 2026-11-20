@@ -11,7 +11,7 @@
 
 ## Состояние
 
-- Версия 1.0.10. Компилируется, собирается self-contained в `dist\AutoHdr.exe` и пять `*_cor3.dll` рядом.
+- Версия 1.0.11. Компилируется, собирается self-contained в `dist\AutoHdr.exe` и пять `*_cor3.dll` рядом.
   Автозапуск работает с копией в `%ProgramFiles%\Auto HDR`.
 - Репозиторий публичный: https://github.com/TatsukiJane/Auto-HDR-Enabler. Готовые сборки — zip в GitHub Releases (раздел «Релиз»),
   лицензия — PolyForm Strict 1.0.0 (`LICENSE.md`).
@@ -33,6 +33,7 @@ AutoHdr/
     AutoHdrEngine.cs    игра запущена → включить HDR и режим монитора; игры закрыты → вернуть прежнее
     MonitorRegistry.cs  известные мониторы, флаг «Авто-HDR» и режим для игр (GamePreset) для каждого
     AppSettings.cs      настройки, включая PendingRevert и PendingPresets
+    UpdateCheck.cs      последний релиз на GitHub: номер версии и ссылка на его страницу
     Infrastructure.cs   AppPaths, InstanceSignals, Log, JsonStore, StartupTrace, Elevation, PathUtil
     Loc.cs              язык интерфейса и журнала: Loc.T("русский", "English")
     Native.cs           P/Invoke
@@ -123,6 +124,12 @@ build.ps1               dotnet publish self-contained, win-x64: dist\AutoHdr.exe
   У P275MS+ это `E0` (программа производителя VIEW MORE WIDGET работает так же, через `dxva2.dll`); записи 1.0.9
   без `GamePresetCode` читаются как `E0`. Ручной режим не трогаем, как ручной HDR. Ночной режим этого монитора
   меняет не `E0`, а яркость и коды `E1`, `33`: одной командой его не включить.
+- **Обновления — только окно со ссылкой** (1.0.11). При запуске, через 10 с, `UpdateCheck` спрашивает `api.github.com` о последнем релизе.
+  Если он новее, окно предлагает открыть страницу релиза; «Нет» запоминает версию в `AppSettings.SkippedVersion`.
+  Скачивания и установки нет: трей работает с правами администратора, а запуск скачанного exe из такого процесса —
+  лишняя поверхность атаки; копию в Program Files всё равно обновляет `--install-task` через UAC. Ссылка собирается
+  из номера версии, а не берётся из ответа, и открывается через `explorer.exe` без прав администратора.
+  Окно — в своём фоновом потоке: окно сообщения в потоке интерфейса не давало `--exit` закрыть процесс, а на этом держится `build.ps1`.
 - **Без внедрения в игры.** Вариант с хуком DXGI внутри процесса игры пользователь отклонил:
   не предлагай его без явной просьбы.
 - **«Ждать HDR»** (`GameRecord.HoldUntilHdr`). Процесс игры приостанавливается (`NtSuspendProcess`),

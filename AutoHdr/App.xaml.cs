@@ -118,7 +118,44 @@ public partial class App : Application
 
         if (!args.Contains("--tray", StringComparer.OrdinalIgnoreCase)) ShowMainWindow();
         _ = StartupScanAsync();
+        _ = CheckForUpdateAsync();
         StartupTrace.Mark("startup done");
+    }
+
+    async Task CheckForUpdateAsync()
+    {
+        if (!Settings.CheckUpdates) return;
+        await Task.Delay(TimeSpan.FromSeconds(10)); // after logon the network may not be up yet
+        Version? latest;
+        try { latest = await UpdateCheck.NewerReleaseAsync(); }
+        catch (Exception ex)
+        {
+            Log.Info(Loc.T($"Не удалось проверить обновления: {ex.Message}", $"Could not check for updates: {ex.Message}"));
+            return;
+        }
+        if (latest == null || latest.ToString() == Settings.SkippedVersion || exiting) return;
+
+        Log.Info(Loc.T($"Вышла версия {latest}", $"Version {latest} is out"));
+        var text = Loc.T(
+            // The buttons are labeled in the Windows language, so the text does not name them
+            $"Вышла новая версия Auto HDR {latest}, у вас {UpdateCheck.Current}\n\nОткрыть страницу загрузки на GitHub?\n\nЕсли нет, об этой версии приложение больше не напомнит",
+            $"Auto HDR {latest} is out, you have {UpdateCheck.Current}\n\nOpen the download page on GitHub?\n\nIf not, the app will not remind you about this version again");
+        var caption = Loc.T("Обновление Auto HDR", "Auto HDR update");
+        // Own background thread: a message box on the UI thread keeps the process alive after --exit (build.ps1 relies on it)
+        var done = new TaskCompletionSource<MessageBoxResult>();
+        var thread = new Thread(() => done.SetResult(MessageBox.Show(text, caption, MessageBoxButton.YesNo, MessageBoxImage.Information)))
+            { IsBackground = true, Name = "UpdateDialog" };
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        var answer = await done.Task;
+        if (exiting) return;
+        if (answer == MessageBoxResult.Yes)
+            UI.MainWindow.OpenUnelevated(UpdateCheck.ReleasePage(latest));
+        else
+        {
+            Settings.SkippedVersion = latest.ToString();
+            Settings.Save();
+        }
     }
 
     bool AcquireSingleInstance()

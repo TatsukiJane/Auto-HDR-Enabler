@@ -385,6 +385,7 @@ public partial class MainWindow : Window
             ExitDelayBox.Text = s.ExitDelaySec.ToString();
             NotifyCheck.IsChecked = s.Notifications;
             OnlineCheck.IsChecked = s.OnlineHdrInfo;
+            UpdatesCheck.IsChecked = s.CheckUpdates;
             LanguageBox.SelectedIndex = s.Language switch { "ru" => 1, "en" => 2, _ => 0 };
 
             ElevateButton.Visibility = TrackingText.Visibility = Elevation.IsElevated ? Visibility.Collapsed : Visibility.Visible;
@@ -449,6 +450,14 @@ public partial class MainWindow : Window
         app.Settings.Save();
     }
 
+    void Updates_Changed(object sender, RoutedEventArgs e)
+    {
+        if (loadingSettings) return;
+        app.Settings.CheckUpdates = UpdatesCheck.IsChecked == true;
+        app.Settings.SkippedVersion = null; // turning the check back on reminds about a declined release too
+        app.Settings.Save();
+    }
+
     void Language_Changed(object sender, SelectionChangedEventArgs e)
     {
         if (loadingSettings) return;
@@ -509,7 +518,7 @@ public partial class MainWindow : Window
     /// through explorer.exe, so the browser does not inherit administrator rights.
     /// Full path: for a short name Windows first looks for the program in the app folder.
     /// </summary>
-    static void OpenUnelevated(string target)
+    internal static void OpenUnelevated(string target)
     {
         var explorer = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "explorer.exe");
         try { Process.Start(new ProcessStartInfo(explorer, $"\"{target}\"") { UseShellExecute = false }); }

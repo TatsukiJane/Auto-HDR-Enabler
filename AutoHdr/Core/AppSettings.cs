@@ -15,6 +15,12 @@ public sealed class AppSettings
     public bool OnlineHdrInfo { get; set; } = true;
     public bool TrayHintShown { get; set; }
 
+    /// <summary>Whether to ask GitHub for a newer release at startup.</summary>
+    public bool CheckUpdates { get; set; } = true;
+
+    /// <summary>A release the user declined: its dialog is not shown again.</summary>
+    public string? SkippedVersion { get; set; }
+
     /// <summary>"ru", "en" or null — the Windows language.</summary>
     public string? Language { get; set; }
 
