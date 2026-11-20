@@ -350,8 +350,8 @@ public partial class MainWindow : Window
             "Auto HDR", MessageBoxButton.OKCancel, MessageBoxImage.Information);
         if (answer != MessageBoxResult.OK) return null;
 
-        row.Activity = codes == null ? Loc.T("Читаю настройки монитора, около 30 с…", "Reading the monitor settings, about 30 s…")
-            : Loc.T("Читаю настройки монитора, около 10 с…", "Reading the monitor settings, about 10 s…");
+        row.Activity = codes == null ? Loc.T("Читаю настройки монитора, около минуты…", "Reading the monitor settings, about a minute…")
+            : Loc.T("Читаю настройки монитора, около 30 с…", "Reading the monitor settings, about 30 s…");
         var codeList = codes?.ToList();
         var snapshot = await Task.Run(() => MonitorPreset.Snapshot(row.Key, codeList));
         row.Activity = null;

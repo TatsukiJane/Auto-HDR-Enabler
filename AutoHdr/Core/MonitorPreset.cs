@@ -33,8 +33,18 @@ public static class MonitorPreset
     public const int Vendor = 0x100;
     const byte VendorPrefix = 0x99;
     const uint VendorAnswer = 0xFAFA;
-    /// <summary>Picture mode register of VIEW MORE WIDGET monitors. The prefix gives access to more registers, but only the mode is needed.</summary>
-    static readonly int[] VendorCodes = [Vendor | 0x22];
+    /// <summary>Picture mode register of VIEW MORE WIDGET monitors (P275MS+). Other models may keep a mode in another register.</summary>
+    const int VendorMode = Vendor | 0x22;
+    /// <summary>
+    /// Registers read behind the prefix: the ones VIEW MORE WIDGET reads and writes on a P275MS+, captured from its DDC calls.
+    /// Not all 256: unknown registers answer 0, take two minutes to read and confuse the monitor, after them even plain codes come back wrong.
+    /// </summary>
+    static readonly int[] VendorCodes = [.. new[]
+    {
+        0x10, 0x22, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3D, 0x3E, 0x3F,
+        0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D,
+        0x60, 0x61, 0x63, 0x64, 0x65, 0x66, 0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xE4, 0xF6, 0xF7,
+    }.Select(c => Vendor | c)];
 
     /// <summary>The code as shown in the log and on the Displays tab: E0, or 99:22 for a register behind the prefix.</summary>
     public static string Name(int code) => code >= Vendor ? $"{VendorPrefix:X2}:{code & 0xFF:X2}" : $"{code:X2}";
@@ -77,15 +87,44 @@ public static class MonitorPreset
     }
 
     /// <summary>
-    /// Stable values of the given codes (all 256 if null): a code is kept only if two reads give the same value.
+    /// Stable values of the given codes: a code is kept only if two reads give the same value.
     /// Null means all 256 codes, plus the registers behind the manufacturer prefix if the monitor answers it.
-    /// Empty if the monitor was not found or did not answer. All codes take about 30 s, the ones a monitor answers about 10 s.
+    /// Empty if the monitor was not found or did not answer. All codes take about 40 s (about a minute with the prefix), the ones a monitor answers about 30 s.
     /// </summary>
     public static Dictionary<int, int> Snapshot(string displayKey, IReadOnlyCollection<int>? codes = null)
     {
-        // The prefix itself is left out: reading it would turn the next plain code into a register behind the prefix
-        lock (Gate) return WithMonitor(displayKey, h => SnapshotLocked(h, codes ??
-            [.. Enumerable.Range(0, 256).Where(c => c != VendorPrefix), .. ReadLocked(h, VendorCodes[0]) != null ? VendorCodes : []]), []);
+        lock (Gate) return WithMonitor(displayKey, h =>
+        {
+            var list = codes?.ToList();
+            if (list == null)
+            {
+                var answer = PrefixAnswer(h);
+                Log.Info(Loc.T($"Ответ монитора на команду производителя 99: {answer}", $"Monitor answer to the manufacturer command 99: {answer}"));
+                // The prefix itself is left out of the plain codes: reading it would turn the next one into a register behind the prefix
+                list = [.. Enumerable.Range(0, 256).Where(c => c != VendorPrefix), .. answer == $"0x{VendorAnswer:X}" ? VendorCodes : []];
+            }
+            var snapshot = SnapshotLocked(h, list);
+            int vendor = snapshot.Keys.Count(c => c >= Vendor);
+            Log.Info(Loc.T($"Снимок настроек монитора: кодов {snapshot.Count - vendor}, регистров производителя {vendor}, {Name(VendorMode)} = {(snapshot.TryGetValue(VendorMode, out int m) ? m : "—")}",
+                $"Monitor settings snapshot: {snapshot.Count - vendor} codes, {vendor} manufacturer registers, {Name(VendorMode)} = {(snapshot.TryGetValue(VendorMode, out int m2) ? m2 : "—")}"));
+            return snapshot;
+        }, []);
+    }
+
+    /// <summary>The raw answer to GET 99 for the log, up to five tries. Each try reads a register after it, so the monitor is never left armed.</summary>
+    static string PrefixAnswer(IntPtr handle)
+    {
+        string answer = Loc.T("нет ответа", "no answer");
+        for (int attempt = 0; attempt < 5; attempt++)
+        {
+            bool answered = GetVCPFeatureAndVCPFeatureReply(handle, VendorPrefix, IntPtr.Zero, out uint value, out uint max);
+            GetVCPFeatureAndVCPFeatureReply(handle, VendorMode & 0xFF, IntPtr.Zero, out _, out _);
+            if (!answered) continue;
+            answer = $"0x{value:X}";
+            if (value == VendorAnswer) break;
+            answer += $" (max 0x{max:X})";
+        }
+        return answer;
     }
 
     /// <summary>
@@ -107,7 +146,7 @@ public static class MonitorPreset
         if (changed.Count == 0) return new(LearnOutcome.NoChange);
 
         // Manufacturer codes first: the mode usually lives there, then the register behind the prefix, the standard display mode and color preset
-        var candidates = changed.OrderBy(c => c is >= 0xE0 and < Vendor ? 0 : c >= Vendor ? 1 : c == 0xDC ? 2 : c == 0x14 ? 3 : 4).ThenBy(c => c).ToList();
+        var candidates = changed.OrderBy(c => c is >= 0xE0 and < Vendor ? 0 : c == VendorMode ? 1 : c >= Vendor ? 2 : c == 0xDC ? 3 : c == 0x14 ? 4 : 5).ThenBy(c => c).ToList();
         lock (Gate)
         {
             foreach (var code in candidates)
@@ -125,10 +164,10 @@ public static class MonitorPreset
 
     static Dictionary<int, int> SnapshotLocked(IntPtr handle, IReadOnlyCollection<int> codes)
     {
-        // A single read misses about a third of the codes on a full scan, so the silent ones get a second pass
+        // A single read misses about a third of the codes on a full scan, so the silent ones get two more passes
         var answered = new Dictionary<int, int>();
         var pending = codes.ToList();
-        for (int pass = 0; pass < 2 && pending.Count > 0; pass++)
+        for (int pass = 0; pass < 3 && pending.Count > 0; pass++)
         {
             foreach (var code in pending)
                 if (ReadOnce(handle, code) is int value) answered[code] = value;
@@ -137,7 +176,7 @@ public static class MonitorPreset
 
         var stable = new Dictionary<int, int>();
         foreach (var (code, value) in answered)
-            if ((ReadOnce(handle, code) ?? ReadOnce(handle, code)) == value) stable[code] = value;
+            if (ReadLocked(handle, code) == value) stable[code] = value;
         return stable;
     }
 
