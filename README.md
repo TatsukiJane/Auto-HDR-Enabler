@@ -4,7 +4,9 @@ A small Windows 11 app that turns HDR on when a game starts and back to SDR when
 
 The interface is in English and Russian. The language follows Windows, and you can change it in Settings
 
-[Download](https://github.com/TatsukiJane/Auto-HDR-Enabler/releases/latest) · [How it works](#how-it-works) · [Is it safe](#is-it-safe) · [How to use](#how-to-use) · [На русском](#на-русском)
+[![Watch the 90-second demo](docs/demo.jpg)](https://github.com/TatsukiJane/Auto-HDR-Enabler/releases/download/v1.0.10/AutoHdr-demo.mp4)
+
+[Download](https://github.com/TatsukiJane/Auto-HDR-Enabler/releases/latest) · [Demo video](https://github.com/TatsukiJane/Auto-HDR-Enabler/releases/download/v1.0.10/AutoHdr-demo.mp4) · [How it works](#how-it-works) · [Is it safe](#is-it-safe) · [How to use](#how-to-use) · [На русском](#на-русском)
 
 ## What it is
 
@@ -171,6 +173,8 @@ The source is available to read, but it is not open source. The license is [Poly
 - [AGENTS.md](AGENTS.md): instructions for AI agents (in Russian)
 
 ## На русском
+
+[Демо-видео на 90 секунд](https://github.com/TatsukiJane/Auto-HDR-Enabler/releases/download/v1.0.10/AutoHdr-demo.mp4), подписи на английском
 
 Auto HDR — маленькое приложение для Windows 11, которое само включает HDR при запуске игры и возвращает SDR после выхода. На рабочем столе остаётся нормальный SDR, а HDR появляется только тогда, когда он нужен
 
