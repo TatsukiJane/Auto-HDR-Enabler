@@ -304,14 +304,14 @@ public partial class MainWindow : Window
             var everyday = await ReadStepAsync(row, Loc.T("Шаг 1 из 3. Включите кнопками монитора обычный режим, в котором вы работаете, и закройте меню монитора",
                 "Step 1 of 3. Use the monitor buttons to select your everyday mode, then close the monitor menu"), null);
             if (everyday == null) return;
-            var game = await ReadStepAsync(row, Loc.T("Шаг 2 из 3. Включите режим изображения для игр, например с local dimming, и закройте меню монитора. Двойной режим и смену разрешения не выбирайте",
-                "Step 2 of 3. Select the game picture mode, for example with local dimming, then close the monitor menu. Do not pick dual mode or a resolution change"), everyday.Keys);
+            var game = await ReadStepAsync(row, Loc.T("Шаг 2 из 3. Включите режим изображения для игр, например с local dimming, и закройте меню монитора. Если режим меняет разрешение или частоту, дождитесь, пока вернётся картинка",
+                "Step 2 of 3. Select the game picture mode, for example with local dimming, then close the monitor menu. If the mode changes the resolution or refresh rate, wait until the picture is back"), everyday.Keys);
             if (game == null) return;
             var again = await ReadStepAsync(row, Loc.T("Шаг 3 из 3. Снова включите обычный режим и закройте меню монитора",
                 "Step 3 of 3. Select the everyday mode again, then close the monitor menu"), everyday.Keys);
             if (again == null) return;
 
-            row.Activity = Loc.T("Проверяю команды, картинка может мигнуть…", "Checking commands, the picture may flicker…");
+            row.Activity = Loc.T("Проверяю команды, картинка может мигнуть или погаснуть на несколько секунд…", "Checking commands, the picture may flicker or go dark for a few seconds…");
             var result = await Task.Run(() => MonitorPreset.FindModeCode(row.Key, everyday, game, again));
             row.Activity = null;
 
@@ -327,8 +327,8 @@ public partial class MainWindow : Window
                         "The monitor settings did not change between the steps. Maybe the mode was not switched, or the monitor does not report it over DDC/CI. No game mode saved"));
                     break;
                 case LearnOutcome.NotFound:
-                    Warn(Loc.T("Ни одна команда не переключила режим целиком, поэтому режим для игр не сохранён. Двойной режим и смену разрешения с компьютера не переключить: на шаге 2 выберите режим изображения или local dimming",
-                        "No command switched the whole mode, so no game mode was saved. Dual mode and resolution changes cannot be switched from the computer: at step 2, select a picture mode or local dimming"));
+                    Warn(Loc.T("Ни одна команда не переключила режим целиком, поэтому режим для игр не сохранён. Похоже, этот режим монитор с компьютера не переключает. Какие настройки изменились, записано во вкладке «Журнал»",
+                        "No command switched the whole mode, so no game mode was saved. The monitor does not seem to switch this mode from the computer. The settings that changed are listed on the Log tab"));
                     break;
                 case LearnOutcome.NotRestored:
                     Warn(Loc.T("Монитор не вернулся в обычный режим: переключите его кнопками. Режим для игр не сохранён",

@@ -17,6 +17,14 @@ public static class MonitorPreset
 {
     static readonly object Gate = new();
     static readonly TimeSpan SettleTimeout = TimeSpan.FromSeconds(4);
+    static readonly TimeSpan ConfirmSettle = TimeSpan.FromSeconds(1);
+    /// <summary>A mode that changes the resolution or refresh rate resyncs the signal: the monitor is silent for several seconds.</summary>
+    static readonly TimeSpan ResyncTimeout = TimeSpan.FromSeconds(15);
+    /// <summary>How soon a resync starts after the mode is accepted.</summary>
+    static readonly TimeSpan ResyncStart = TimeSpan.FromSeconds(1);
+
+    /// <summary>Codes the monitor only reports (horizontal and vertical frequency): they follow a mode, writing them does nothing.</summary>
+    static readonly HashSet<byte> ReportOnly = [0xAC, 0xAE];
 
     /// <summary>
     /// The current value of the code, or null if the monitor did not answer or was not found.
@@ -36,15 +44,19 @@ public static class MonitorPreset
         }
     }
 
-    /// <summary>Sets the value and confirms it by reading it back. Right after an HDR switch the monitor is silent for a few seconds.</summary>
+    /// <summary>
+    /// Sets the value and confirms it by reading it back, then waits out a signal resync if the mode starts one.
+    /// Re-sent while the monitor answers with the old value: right after an HDR switch it drops writes.
+    /// </summary>
     public static bool Write(string displayKey, byte code, int value, TimeSpan timeout)
     {
         var deadline = DateTime.UtcNow + timeout;
+        var target = new Dictionary<byte, int> { [code] = value };
         lock (Gate)
         {
             while (true)
             {
-                if (WithMonitor(displayKey, h => SetVCPFeature(h, code, (uint)value) && Confirm(h, code, value), false)) return true;
+                if (WithMonitor(displayKey, h => SetVCPFeature(h, code, (uint)value), false) && Settled(displayKey, [code], target, ConfirmSettle)) return true;
                 if (DateTime.UtcNow >= deadline) return false;
                 Thread.Sleep(300);
             }
@@ -69,8 +81,12 @@ public static class MonitorPreset
     /// </summary>
     public static LearnResult FindModeCode(string displayKey, Dictionary<byte, int> everyday, Dictionary<byte, int> game, Dictionary<byte, int> everydayAgain)
     {
-        var changed = game.Keys
-            .Where(c => everyday.TryGetValue(c, out int a) && everydayAgain.TryGetValue(c, out int a2) && a == a2 && game[c] != a)
+        var differing = game.Keys.Where(c => everyday.TryGetValue(c, out int a) && game[c] != a).Order().ToList();
+        Log.Info(Loc.T("Поиск режима монитора: изменились коды ", "Monitor mode search: changed codes ") + (differing.Count == 0 ? "—" :
+            string.Join(", ", differing.Select(c => $"{c:X2}: {everyday[c]} → {game[c]} → {(everydayAgain.TryGetValue(c, out int v) ? v.ToString() : "?")}"))));
+
+        var changed = differing
+            .Where(c => !ReportOnly.Contains(c) && everydayAgain.TryGetValue(c, out int a2) && a2 == everyday[c])
             .ToList();
         if (changed.Count == 0) return new(LearnOutcome.NoChange);
 
@@ -78,19 +94,16 @@ public static class MonitorPreset
         var candidates = changed.OrderBy(c => c >= 0xE0 ? 0 : c == 0xDC ? 1 : c == 0x14 ? 2 : 3).ThenBy(c => c).ToList();
         lock (Gate)
         {
-            return WithMonitor(displayKey, h =>
+            foreach (var code in candidates)
             {
-                foreach (var code in candidates)
-                {
-                    bool isMode = SetVCPFeature(h, code, (uint)game[code]) && WaitFor(h, changed, game);
-                    bool restored = SetVCPFeature(h, code, (uint)everyday[code]) && WaitFor(h, changed, everyday);
-                    Log.Info(Loc.T($"Поиск режима монитора: код {code:X2} — {(isMode ? "переключает режим" : "не переключает режим")}, обычный режим {(restored ? "вернулся" : "не вернулся")}",
-                        $"Monitor mode search: code {code:X2} — {(isMode ? "switches the mode" : "does not switch the mode")}, everyday mode {(restored ? "restored" : "not restored")}"));
-                    if (!restored) return new LearnResult(LearnOutcome.NotRestored);
-                    if (isMode) return new LearnResult(LearnOutcome.Found, code, game[code]);
-                }
-                return new LearnResult(LearnOutcome.NotFound);
-            }, new LearnResult(LearnOutcome.NotFound));
+                bool isMode = WithMonitor(displayKey, h => SetVCPFeature(h, code, (uint)game[code]), false) && Settled(displayKey, changed, game, SettleTimeout);
+                bool restored = Write(displayKey, code, everyday[code], ResyncTimeout) && Settled(displayKey, changed, everyday, SettleTimeout);
+                Log.Info(Loc.T($"Поиск режима монитора: код {code:X2} — {(isMode ? "переключает режим" : "не переключает режим")}, обычный режим {(restored ? "вернулся" : "не вернулся")}",
+                    $"Monitor mode search: code {code:X2} — {(isMode ? "switches the mode" : "does not switch the mode")}, everyday mode {(restored ? "restored" : "not restored")}"));
+                if (!restored) return new LearnResult(LearnOutcome.NotRestored);
+                if (isMode) return new LearnResult(LearnOutcome.Found, code, game[code]);
+            }
+            return new LearnResult(LearnOutcome.NotFound);
         }
     }
 
@@ -112,27 +125,35 @@ public static class MonitorPreset
         return stable;
     }
 
-    /// <summary>Waits until every code has its target value: the monitor applies a mode within a second or two.</summary>
-    static bool WaitFor(IntPtr handle, IReadOnlyList<byte> codes, Dictionary<byte, int> target)
+    /// <summary>
+    /// Waits until every code has its target value, then checks again after <see cref="ResyncStart"/>:
+    /// a mode that changes the resolution blanks the screen only after the monitor has reported the new value.
+    /// </summary>
+    static bool Settled(string displayKey, IReadOnlyList<byte> codes, Dictionary<byte, int> target, TimeSpan settle)
     {
-        var deadline = DateTime.UtcNow + SettleTimeout;
-        while (true)
-        {
-            Thread.Sleep(200);
-            if (codes.All(c => ReadLocked(handle, c) == target[c])) return true;
-            if (DateTime.UtcNow >= deadline) return false;
-        }
+        if (!WaitFor(displayKey, codes, target, settle)) return false;
+        Thread.Sleep(ResyncStart);
+        return WaitFor(displayKey, codes, target, settle);
     }
 
-    static bool Confirm(IntPtr handle, byte code, int value)
+    /// <summary>
+    /// Waits until every code has its target value. <paramref name="settle"/> counts from the last moment the monitor was silent,
+    /// so a signal resync (several seconds without answers) does not fail the wait, up to <see cref="ResyncTimeout"/>.
+    /// The monitor is found anew on every read: after a resync Windows may give it a new handle.
+    /// </summary>
+    static bool WaitFor(string displayKey, IReadOnlyList<byte> codes, Dictionary<byte, int> target, TimeSpan settle)
     {
-        // The monitor applies the mode within a few hundred milliseconds: until then it reports the old one
-        for (int i = 0; i < 5; i++)
+        var start = DateTime.UtcNow;
+        var answeredSince = start;
+        while (true)
         {
+            var values = codes.Select(c => WithMonitor(displayKey, h => ReadLocked(h, c), null)).ToList();
+            if (codes.Select((c, i) => values[i] == target[c]).All(match => match)) return true;
+            var now = DateTime.UtcNow;
+            if (values.Contains(null)) answeredSince = now;
+            if (now - answeredSince >= settle || now - start >= ResyncTimeout) return false;
             Thread.Sleep(200);
-            if (ReadLocked(handle, code) == value) return true;
         }
-        return false;
     }
 
     static int? ReadLocked(IntPtr handle, byte code)

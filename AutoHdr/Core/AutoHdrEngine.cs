@@ -160,7 +160,8 @@ public sealed class AutoHdrEngine
                 var displays = HdrControl.GetDisplays();
                 monitors.Sync(displays);
                 // The picture mode first: the monitor keeps it in HDR too, and HDR blanks the screen for a few seconds
-                if (entry.Preset) ApplyPresets(game, displays);
+                // A mode that changes the resolution resyncs the signal: HDR goes on the display list Windows has after it
+                if (entry.Preset && ApplyPresets(game, displays)) displays = HdrControl.GetDisplays();
                 if (entry.Hdr) await EnableHdrAsync(game, displays);
             }
             finally
@@ -183,8 +184,10 @@ public sealed class AutoHdrEngine
         }
     }
 
-    void ApplyPresets(GameRecord game, IReadOnlyList<DisplayInfo> displays)
+    /// <summary>Switches the monitors to their game modes. True if any monitor was switched.</summary>
+    bool ApplyPresets(GameRecord game, IReadOnlyList<DisplayInfo> displays)
     {
+        bool switched = false;
         foreach (var (display, code, preset) in monitors.GamePresets(displays))
         {
             // A short read: a monitor without DDC/CI must not delay HDR by seconds
@@ -203,9 +206,11 @@ public sealed class AutoHdrEngine
             }
             lock (gate) settings.PendingPresets.TryAdd(display.Key, current.Value);
             settings.Save();
+            switched = true;
             Log.Info(Loc.T($"Режим монитора {preset} включён для «{game.Name}» на «{display.Name}», прежний режим {current}",
                 $"Monitor mode {preset} on for “{game.Name}” on “{display.Name}”, previous mode {current}"));
         }
+        return switched;
     }
 
     async Task EnableHdrAsync(GameRecord game, IReadOnlyList<DisplayInfo> displays)
