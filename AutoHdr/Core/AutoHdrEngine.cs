@@ -185,10 +185,10 @@ public sealed class AutoHdrEngine
 
     void ApplyPresets(GameRecord game, IReadOnlyList<DisplayInfo> displays)
     {
-        foreach (var (display, preset) in monitors.GamePresets(displays))
+        foreach (var (display, code, preset) in monitors.GamePresets(displays))
         {
             // A short read: a monitor without DDC/CI must not delay HDR by seconds
-            var current = MonitorPreset.Read(display.Key);
+            var current = MonitorPreset.Read(display.Key, code);
             if (current == null)
             {
                 Log.Warn(Loc.T($"«{display.Name}» не ответил по DDC/CI: режим монитора не переключён", $"“{display.Name}” did not answer over DDC/CI: the monitor mode was not switched"));
@@ -196,7 +196,7 @@ public sealed class AutoHdrEngine
             }
             if (current == preset) continue; // already in the game mode: set manually or by another game, nothing to restore
 
-            if (!MonitorPreset.Write(display.Key, preset, ConfirmTimeout))
+            if (!MonitorPreset.Write(display.Key, code, preset, ConfirmTimeout))
             {
                 Log.Warn(Loc.T($"Не удалось включить режим монитора {preset} на «{display.Name}»", $"Could not switch “{display.Name}” to monitor mode {preset}"));
                 continue;
@@ -314,18 +314,21 @@ public sealed class AutoHdrEngine
 
     void RevertPresets(Dictionary<string, int> presets, IReadOnlyList<DisplayInfo> displays)
     {
-        var gamePresets = monitors.GamePresets(displays).ToDictionary(p => p.Display.Key, p => p.Preset);
+        var gamePresets = monitors.GamePresets(displays).ToDictionary(p => p.Display.Key);
         foreach (var (key, previous) in presets)
         {
             var display = displays.FirstOrDefault(d => d.Key == key);
             if (display == null) continue; // not connected now: stays in the list until it comes back
 
-            var current = MonitorPreset.Read(key, ConfirmTimeout);
-            if (current == null)
+            bool hasMode = gamePresets.TryGetValue(key, out var mode);
+            var current = hasMode ? MonitorPreset.Read(key, mode.Code, ConfirmTimeout) : null;
+            if (!hasMode)
+                Log.Info(Loc.T($"На «{display.Name}» режим для игр больше не настроен: режим монитора не возвращается", $"No game mode is set up on “{display.Name}” any more: the monitor mode is not restored"));
+            else if (current == null)
                 Log.Warn(Loc.T($"«{display.Name}» не ответил по DDC/CI: режим монитора {previous} не возвращён", $"“{display.Name}” did not answer over DDC/CI: monitor mode {previous} was not restored"));
-            else if (!gamePresets.TryGetValue(key, out int gamePreset) || current != gamePreset)
+            else if (current != mode.Preset)
                 Log.Info(Loc.T($"На «{display.Name}» режим монитора сменили вручную ({current}): оставлен как есть", $"The monitor mode on “{display.Name}” was changed manually ({current}): left as is"));
-            else if (MonitorPreset.Write(key, previous, ConfirmTimeout))
+            else if (MonitorPreset.Write(key, mode.Code, previous, ConfirmTimeout))
                 Log.Info(Loc.T($"Режим монитора {previous} возвращён на «{display.Name}»", $"Monitor mode {previous} restored on “{display.Name}”"));
             else
                 Log.Warn(Loc.T($"Не удалось вернуть режим монитора {previous} на «{display.Name}»", $"Could not restore monitor mode {previous} on “{display.Name}”"));

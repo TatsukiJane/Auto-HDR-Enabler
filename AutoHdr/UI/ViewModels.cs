@@ -25,8 +25,14 @@ public sealed class MonitorRow : Observable
     public bool Connected { get; set { if (Set(ref field, value)) Raise(nameof(StateText)); } }
     public bool HdrSupported { get; set { if (Set(ref field, value)) Raise(nameof(StateText)); } }
     public bool HdrOn { get; set { if (Set(ref field, value)) Raise(nameof(StateText)); } }
+    public bool IsVirtual { get; set; }
+
+    /// <summary>What the game mode setup is doing right now: shown instead of the HDR state.</summary>
+    public string? Activity { get; set { if (Set(ref field, value)) Raise(nameof(StateText)); } }
+
     public bool CanToggle => Connected && HdrSupported;
     public bool CanForget => !Connected;
+    public bool CanSetupMode => Connected && !IsVirtual;
 
     bool silent;
 
@@ -40,9 +46,9 @@ public sealed class MonitorRow : Observable
         }
     }
 
-    public string StateText => !Connected ? Loc.T("Не подключён", "Not connected")
+    public string StateText => Activity ?? (!Connected ? Loc.T("Не подключён", "Not connected")
         : !HdrSupported ? Loc.T("HDR не поддерживается", "HDR not supported")
-        : HdrOn ? Loc.T("HDR включён", "HDR on") : Loc.T("HDR выключен", "HDR off");
+        : HdrOn ? Loc.T("HDR включён", "HDR on") : Loc.T("HDR выключен", "HDR off"));
 
     /// <summary>Update the checkbox with the value from the display registry without writing it back.</summary>
     public void SetAutoSilently(bool value)
@@ -56,6 +62,7 @@ public sealed class MonitorRow : Observable
     {
         Raise(nameof(CanToggle));
         Raise(nameof(CanForget));
+        Raise(nameof(CanSetupMode));
         Raise(nameof(StateText));
     }
 }

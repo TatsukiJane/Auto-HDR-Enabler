@@ -10,8 +10,11 @@ public sealed class MonitorRecord
     public bool HdrSupported { get; set; }
     public bool IsVirtual { get; set; }
 
-    /// <summary>Picture mode (DDC/CI code E0) to switch to while a game with “Monitor mode” runs; null — not set.</summary>
+    /// <summary>Picture mode value to switch to while a game with “Monitor mode” runs; null — not set.</summary>
     public int? GamePreset { get; set; }
+
+    /// <summary>The VCP code that switches the picture mode, found by the setup on the Displays tab. Null with a GamePreset — version 1.0.9, code E0.</summary>
+    public int? GamePresetCode { get; set; }
 }
 
 public sealed class MonitorRegistryData
@@ -53,13 +56,13 @@ public sealed partial class MonitorRegistry
     public List<DisplayInfo> Targets(IEnumerable<DisplayInfo> displays) =>
         displays.Where(d => d.HdrSupported && IsAuto(d)).ToList();
 
-    /// <summary>Connected displays with a saved picture mode for games.</summary>
-    public List<(DisplayInfo Display, int Preset)> GamePresets(IEnumerable<DisplayInfo> displays)
+    /// <summary>Connected displays with a saved picture mode for games: the VCP code and its value.</summary>
+    public List<(DisplayInfo Display, byte Code, int Preset)> GamePresets(IEnumerable<DisplayInfo> displays)
     {
         lock (gate)
-            return displays.Select(d => (d, FindLocked(d)?.GamePreset))
-                .Where(p => p.Item2 != null)
-                .Select(p => (p.d, p.Item2!.Value))
+            return displays.Select(d => (Display: d, Record: FindLocked(d)))
+                .Where(p => p.Record?.GamePreset != null)
+                .Select(p => (p.Display, (byte)(p.Record!.GamePresetCode ?? 0xE0), p.Record.GamePreset!.Value))
                 .ToList();
     }
 
@@ -123,15 +126,16 @@ public sealed partial class MonitorRegistry
         Changed?.Invoke();
     }
 
-    public void SetGamePreset(string key, int preset)
+    public void SetGamePreset(string key, byte code, int preset)
     {
         lock (gate)
         {
             var record = data.Monitors.FirstOrDefault(m => m.Key == key);
             if (record == null) return;
+            record.GamePresetCode = code;
             record.GamePreset = preset;
             SaveLocked();
-            Log.Info(Loc.T($"Режим для игр на «{record.Name}»: {preset}", $"Game picture mode on “{record.Name}”: {preset}"));
+            Log.Info(Loc.T($"Режим для игр на «{record.Name}»: код {code:X2}, значение {preset}", $"Game picture mode on “{record.Name}”: code {code:X2}, value {preset}"));
         }
         Changed?.Invoke();
     }

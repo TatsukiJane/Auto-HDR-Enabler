@@ -44,7 +44,7 @@ Auto HDR changes one thing in Windows: the HDR on and off switch of the displays
 **What it changes**
 
 - The HDR switch of checked displays, through the same Windows API the Settings app uses
-- Only if you save a game picture mode for a monitor: the monitor picture mode, over DDC/CI, the same channel the monitor maker apps use
+- Only if you set up a game mode for a monitor: the monitor picture mode, over DDC/CI, the same channel the monitor maker apps use
 - Its own files in `%LOCALAPPDATA%\AutoHdr`: `settings.json`, `games.json`, `monitors.json` and `log.txt`
 - Only if you turn on “Start with Windows”: a copy of the app in `C:\Program Files\Auto HDR` and a Task Scheduler task named “AutoHDR Enabler”
 
@@ -112,18 +112,17 @@ Then HDR turns on strictly before the game starts and turns off after all its pr
 
 Some monitors have several picture modes, for example with and without local dimming on a Mini LED monitor. Auto HDR can switch to the mode you want while a game or any other program runs, and switch back after it exits
 
-1. Select the mode with the monitor buttons
-2. On the Displays tab, click “Save mode for games” next to the monitor. The row shows the saved mode number
-3. Switch the monitor back to your everyday mode
-4. On the Games tab, check “Monitor mode” for the games you want. Programs that are not games can be added with “Add game”
+1. Set up the game mode once. On the Displays tab, click “Set up game mode” next to the monitor and follow three steps: select your everyday mode with the monitor buttons, then the game mode, then the everyday mode again. Close the monitor menu before each OK. The app reads the monitor settings at each step, finds the command that switches the whole mode and checks it, so the picture may flicker. The setup takes about a minute, and the monitor ends in the everyday mode. The row then shows the saved mode, for example “game mode: E0 = 6”
+2. On the Games tab, check “Monitor mode” for the games you want. The column appears once a game mode is set up. Programs that are not games can be added with “Add game”
 
 The mode works on its own, without HDR, and together with it. When the game exits, the app restores the previous mode. If the monitor was already in the game mode, or you changed the mode yourself during the game, the app leaves it as is
 
 Requirements and limits:
 
-- DDC/CI must be on in the monitor menu. Close the monitor maker app while you play: two apps talking to the monitor at once may interfere
-- The app uses VCP code `E0` for the picture mode. It is checked on the Titan Army P275MS+. Other monitors may keep the mode under another code: then “Save mode for games” saves a wrong value. Tell us in Issues if your monitor does not switch
-- In HDR the monitor keeps the selected mode but applies its own HDR brightness and color settings on top
+- DDC/CI must be on in the monitor menu. Close the monitor maker app during the setup and while you play: two apps talking to the monitor at once may interfere
+- Not every monitor can do this. The setup tells you if the monitor does not answer over DDC/CI, if its settings do not change between the modes, or if no single command switches the whole mode. Then nothing is saved and the “Monitor mode” column stays hidden
+- During the setup the app writes to the monitor only values the monitor itself reported a moment before. Turn HDR off for the setup: in HDR the monitor overrides the mode brightness and colors
+- In HDR the monitor keeps the selected mode but applies its own HDR brightness and color settings on top. Checked on the Titan Army P275MS+
 
 ### Update
 
@@ -177,11 +176,11 @@ Auto HDR — маленькое приложение для Windows 11, кото
 
 **Как работает.** Приложение находит игры в Steam, GOG, Epic, EA app, Ubisoft Connect, Xbox, Rockstar и в ваших папках и проверяет поддержку HDR по Steam, PCGamingWiki и файлам игры. Раз в 0,25 с оно смотрит список запущенных процессов. Когда стартует игра с авто-HDR, приложение включает HDR на отмеченных мониторах, а после выхода из игры выключает его. HDR, включённый до игры, остаётся включённым
 
-**Режим монитора.** Приложение может на время игры или любой программы переключать монитор в сохранённый режим изображения, например с local dimming. Включите режим кнопками монитора и нажмите «Запомнить режим для игр» во вкладке «Мониторы», затем отметьте «Режим монитора» у нужных игр. Нужен включённый DDC/CI в меню монитора. Режим хранится в коде VCP `E0`: это проверено на Titan Army P275MS+, у других моделей код может быть другим
+**Режим монитора.** Приложение может на время игры или любой программы переключать монитор в сохранённый режим изображения, например с local dimming. Нажмите «Настроить режим для игр» во вкладке «Мониторы» и по подсказкам переключите кнопками монитора обычный режим, режим для игр и снова обычный: приложение само найдёт команду, которая переключает режим. Затем отметьте «Режим монитора» у нужных игр. Нужен включённый DDC/CI в меню монитора. Если монитор не умеет переключать режимы с компьютера, настройка об этом скажет и ничего не сохранит
 
 **Безопасность**
 
-- Приложение меняет в Windows только переключатель HDR на отмеченных мониторах, тот же, что в «Параметры → Система → Дисплей», и режим изображения монитора, если вы сохранили его для игр. Разрешение, частоту, цветовые профили и настройки драйвера оно не трогает
+- Приложение меняет в Windows только переключатель HDR на отмеченных мониторах, тот же, что в «Параметры → Система → Дисплей», и режим изображения монитора, если вы настроили режим для игр. Разрешение, частоту, цветовые профили и настройки драйвера оно не трогает
 - В игры ничего не внедряет, файлы игр только читает, реестр только читает
 - В сеть ходит только в Steam Store и PCGamingWiki и передаёт номер игры в Steam или GOG либо её название. Ни телеметрии, ни аккаунтов, ни автообновлений. Проверку в интернете можно выключить в настройках
 - Права администратора нужны только для «Ждать HDR». Чтобы не было окна UAC при каждом входе, приложение запускается через планировщик заданий из `C:\Program Files\Auto HDR`, где его не может подменить обычная программа

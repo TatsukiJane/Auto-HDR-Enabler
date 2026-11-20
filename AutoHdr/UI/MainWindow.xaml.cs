@@ -255,14 +255,18 @@ public partial class MainWindow : Window
             // For a virtual display the connection type already says “Virtual”: show it once
             var connection = record.IsVirtual ? Loc.T("Виртуальный дисплей", "Virtual display") : record.Connection;
             var kind = !record.IsVirtual && MonitorRegistry.LooksLikeTv(record.Name) ? Loc.T("телевизор", "TV") : null;
-            var preset = record.GamePreset is int p ? Loc.T($"режим для игр: {p}", $"game mode: {p}") : null;
+            var preset = record.GamePreset is int p ? Loc.T($"режим для игр: {record.GamePresetCode ?? 0xE0:X2} = {p}", $"game mode: {record.GamePresetCode ?? 0xE0:X2} = {p}") : null;
             row.Details = string.Join(" · ", new[] { connection, record.EdidId, kind, preset }.Where(s => !string.IsNullOrEmpty(s)));
             row.Connected = display != null;
             row.HdrSupported = display?.HdrSupported ?? record.HdrSupported;
             row.HdrOn = display?.HdrOn ?? false;
+            row.IsVirtual = record.IsVirtual;
             row.SetAutoSilently(record.AutoHdr);
             row.RaiseAll();
         }
+
+        // The checkbox does nothing until a game mode is set up: do not offer it before that
+        MonitorModeColumn.Visibility = records.Any(m => m.GamePreset != null) ? Visibility.Visible : Visibility.Collapsed;
     }
 
     async void ToggleMonitor_Click(object sender, RoutedEventArgs e)
@@ -273,22 +277,94 @@ public partial class MainWindow : Window
         finally { ((Button)sender).IsEnabled = true; }
     }
 
-    async void SavePreset_Click(object sender, RoutedEventArgs e)
+    bool settingUpMode;
+
+    /// <summary>
+    /// Game mode setup: the user switches the monitor to the everyday mode, the game mode and the everyday mode again,
+    /// the app reads all settings at each step, then finds the code that switches the whole mode (MonitorPreset.FindModeCode).
+    /// </summary>
+    async void SetupMode_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.DataContext is not MonitorRow row) return;
-        // A second click during the read just reads again: MonitorPreset serializes the requests
-        var preset = await Task.Run(() => MonitorPreset.Read(row.Key, TimeSpan.FromSeconds(2)));
-        if (preset is int value)
+        if (settingUpMode)
         {
-            app.Monitors.SetGamePreset(row.Key, value);
+            Info(Loc.T("Настройка режима для игр уже идёт", "The game mode setup is already running"));
             return;
         }
-        Log.Warn(Loc.T($"«{row.Name}» не ответил по DDC/CI: режим для игр не сохранён", $"“{row.Name}” did not answer over DDC/CI: the game mode was not saved"));
-        MessageBox.Show(this,
-            Loc.T("Монитор не ответил по DDC/CI. Включите DDC/CI в меню монитора и закройте другие программы управления монитором",
-                "The monitor did not answer over DDC/CI. Turn DDC/CI on in the monitor menu and close other monitor control apps"),
-            "Auto HDR", MessageBoxButton.OK, MessageBoxImage.Warning);
+        if (row.HdrOn)
+        {
+            Info(Loc.T("Выключите HDR на этом мониторе на время настройки: в HDR монитор подменяет яркость и цвета режима",
+                "Turn HDR off on this display for the setup: in HDR the monitor overrides the mode brightness and colors"));
+            return;
+        }
+
+        settingUpMode = true;
+        try
+        {
+            var everyday = await ReadStepAsync(row, Loc.T("Шаг 1 из 3. Включите кнопками монитора обычный режим, в котором вы работаете, и закройте меню монитора",
+                "Step 1 of 3. Use the monitor buttons to select your everyday mode, then close the monitor menu"), null);
+            if (everyday == null) return;
+            var game = await ReadStepAsync(row, Loc.T("Шаг 2 из 3. Включите режим для игр, например с local dimming, и закройте меню монитора",
+                "Step 2 of 3. Select the game mode, for example with local dimming, then close the monitor menu"), everyday.Keys);
+            if (game == null) return;
+            var again = await ReadStepAsync(row, Loc.T("Шаг 3 из 3. Снова включите обычный режим и закройте меню монитора",
+                "Step 3 of 3. Select the everyday mode again, then close the monitor menu"), everyday.Keys);
+            if (again == null) return;
+
+            row.Activity = Loc.T("Проверяю команды, картинка может мигнуть…", "Checking commands, the picture may flicker…");
+            var result = await Task.Run(() => MonitorPreset.FindModeCode(row.Key, everyday, game, again));
+            row.Activity = null;
+
+            switch (result.Outcome)
+            {
+                case LearnOutcome.Found:
+                    app.Monitors.SetGamePreset(row.Key, result.Code, result.Value);
+                    Info(Loc.T($"Режим для игр сохранён: код {result.Code:X2}, значение {result.Value}. Монитор вернулся в обычный режим. Отметьте «Режим монитора» у нужных игр во вкладке «Игры»",
+                        $"Game mode saved: code {result.Code:X2}, value {result.Value}. The monitor is back in the everyday mode. Check “Monitor mode” for the games you want on the Games tab"));
+                    break;
+                case LearnOutcome.NoChange:
+                    Warn(Loc.T("Между шагами настройки монитора не изменились. Возможно, режим не переключили или монитор не сообщает его по DDC/CI. Режим для игр не сохранён",
+                        "The monitor settings did not change between the steps. Maybe the mode was not switched, or the monitor does not report it over DDC/CI. No game mode saved"));
+                    break;
+                case LearnOutcome.NotFound:
+                    Warn(Loc.T("Не нашлось команды, которая переключает режим целиком: этот монитор не умеет переключать режимы с компьютера. Режим для игр не сохранён",
+                        "No command switches the whole mode: this monitor cannot switch modes from the computer. No game mode saved"));
+                    break;
+                case LearnOutcome.NotRestored:
+                    Warn(Loc.T("Монитор не вернулся в обычный режим: переключите его кнопками. Режим для игр не сохранён",
+                        "The monitor did not return to the everyday mode: switch it with its buttons. No game mode saved"));
+                    break;
+            }
+        }
+        finally
+        {
+            settingUpMode = false;
+            row.Activity = null;
+        }
     }
+
+    /// <summary>Shows the step, then reads the monitor settings. Null if the user cancelled or the monitor did not answer.</summary>
+    async Task<Dictionary<byte, int>?> ReadStepAsync(MonitorRow row, string step, IReadOnlyCollection<byte>? codes)
+    {
+        var answer = MessageBox.Show(this, step + Environment.NewLine + Environment.NewLine + Loc.T("Когда будет готово, нажмите «ОК»", "Click OK when ready"),
+            "Auto HDR", MessageBoxButton.OKCancel, MessageBoxImage.Information);
+        if (answer != MessageBoxResult.OK) return null;
+
+        row.Activity = codes == null ? Loc.T("Читаю настройки монитора, около 30 с…", "Reading the monitor settings, about 30 s…")
+            : Loc.T("Читаю настройки монитора, около 10 с…", "Reading the monitor settings, about 10 s…");
+        var codeList = codes?.ToList();
+        var snapshot = await Task.Run(() => MonitorPreset.Snapshot(row.Key, codeList));
+        row.Activity = null;
+        if (snapshot.Count > 0) return snapshot;
+
+        Log.Warn(Loc.T($"«{row.Name}» не ответил по DDC/CI: режим для игр не настроен", $"“{row.Name}” did not answer over DDC/CI: no game mode set up"));
+        Warn(Loc.T("Монитор не ответил по DDC/CI. Включите DDC/CI в меню монитора и закройте другие программы управления монитором",
+            "The monitor did not answer over DDC/CI. Turn DDC/CI on in the monitor menu and close other monitor control apps"));
+        return null;
+    }
+
+    void Info(string text) => MessageBox.Show(this, text, "Auto HDR", MessageBoxButton.OK, MessageBoxImage.Information);
+    void Warn(string text) => MessageBox.Show(this, text, "Auto HDR", MessageBoxButton.OK, MessageBoxImage.Warning);
 
     void ForgetMonitor_Click(object sender, RoutedEventArgs e)
     {
