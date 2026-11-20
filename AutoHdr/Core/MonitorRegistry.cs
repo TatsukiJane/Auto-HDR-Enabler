@@ -13,7 +13,10 @@ public sealed class MonitorRecord
     /// <summary>Picture mode value to switch to while a game with “Monitor mode” runs; null — not set.</summary>
     public int? GamePreset { get; set; }
 
-    /// <summary>The VCP code that switches the picture mode, found by the setup on the Displays tab. Null with a GamePreset — version 1.0.9, code E0.</summary>
+    /// <summary>
+    /// The VCP code that switches the picture mode, found by the setup on the Displays tab. Null with a GamePreset — version 1.0.9, code E0.
+    /// From MonitorPreset.Vendor up — a register behind the manufacturer prefix (0x122 is 99:22).
+    /// </summary>
     public int? GamePresetCode { get; set; }
 }
 
@@ -57,12 +60,12 @@ public sealed partial class MonitorRegistry
         displays.Where(d => d.HdrSupported && IsAuto(d)).ToList();
 
     /// <summary>Connected displays with a saved picture mode for games: the VCP code and its value.</summary>
-    public List<(DisplayInfo Display, byte Code, int Preset)> GamePresets(IEnumerable<DisplayInfo> displays)
+    public List<(DisplayInfo Display, int Code, int Preset)> GamePresets(IEnumerable<DisplayInfo> displays)
     {
         lock (gate)
             return displays.Select(d => (Display: d, Record: FindLocked(d)))
                 .Where(p => p.Record?.GamePreset != null)
-                .Select(p => (p.Display, (byte)(p.Record!.GamePresetCode ?? 0xE0), p.Record.GamePreset!.Value))
+                .Select(p => (p.Display, p.Record!.GamePresetCode ?? 0xE0, p.Record.GamePreset!.Value))
                 .ToList();
     }
 
@@ -126,7 +129,7 @@ public sealed partial class MonitorRegistry
         Changed?.Invoke();
     }
 
-    public void SetGamePreset(string key, byte code, int preset)
+    public void SetGamePreset(string key, int code, int preset)
     {
         lock (gate)
         {
@@ -135,7 +138,7 @@ public sealed partial class MonitorRegistry
             record.GamePresetCode = code;
             record.GamePreset = preset;
             SaveLocked();
-            Log.Info(Loc.T($"Режим для игр на «{record.Name}»: код {code:X2}, значение {preset}", $"Game picture mode on “{record.Name}”: code {code:X2}, value {preset}"));
+            Log.Info(Loc.T($"Режим для игр на «{record.Name}»: код {MonitorPreset.Name(code)}, значение {preset}", $"Game picture mode on “{record.Name}”: code {MonitorPreset.Name(code)}, value {preset}"));
         }
         Changed?.Invoke();
     }

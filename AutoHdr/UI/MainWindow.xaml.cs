@@ -255,7 +255,7 @@ public partial class MainWindow : Window
             // For a virtual display the connection type already says “Virtual”: show it once
             var connection = record.IsVirtual ? Loc.T("Виртуальный дисплей", "Virtual display") : record.Connection;
             var kind = !record.IsVirtual && MonitorRegistry.LooksLikeTv(record.Name) ? Loc.T("телевизор", "TV") : null;
-            var preset = record.GamePreset is int p ? Loc.T($"режим для игр: {record.GamePresetCode ?? 0xE0:X2} = {p}", $"game mode: {record.GamePresetCode ?? 0xE0:X2} = {p}") : null;
+            var preset = record.GamePreset is int p ? Loc.T($"режим для игр: {MonitorPreset.Name(record.GamePresetCode ?? 0xE0)} = {p}", $"game mode: {MonitorPreset.Name(record.GamePresetCode ?? 0xE0)} = {p}") : null;
             row.Details = string.Join(" · ", new[] { connection, record.EdidId, kind, preset }.Where(s => !string.IsNullOrEmpty(s)));
             row.Connected = display != null;
             row.HdrSupported = display?.HdrSupported ?? record.HdrSupported;
@@ -319,8 +319,8 @@ public partial class MainWindow : Window
             {
                 case LearnOutcome.Found:
                     app.Monitors.SetGamePreset(row.Key, result.Code, result.Value);
-                    Info(Loc.T($"Режим для игр сохранён: код {result.Code:X2}, значение {result.Value}. Монитор вернулся в обычный режим. Отметьте «Режим монитора» у нужных игр во вкладке «Игры»",
-                        $"Game mode saved: code {result.Code:X2}, value {result.Value}. The monitor is back in the everyday mode. Check “Monitor mode” for the games you want on the Games tab"));
+                    Info(Loc.T($"Режим для игр сохранён: код {MonitorPreset.Name(result.Code)}, значение {result.Value}. Монитор вернулся в обычный режим. Отметьте «Режим монитора» у нужных игр во вкладке «Игры»",
+                        $"Game mode saved: code {MonitorPreset.Name(result.Code)}, value {result.Value}. The monitor is back in the everyday mode. Check “Monitor mode” for the games you want on the Games tab"));
                     break;
                 case LearnOutcome.NoChange:
                     Warn(Loc.T("Между шагами настройки монитора не изменились. Возможно, режим не переключили или монитор не сообщает его по DDC/CI. Режим для игр не сохранён",
@@ -344,7 +344,7 @@ public partial class MainWindow : Window
     }
 
     /// <summary>Shows the step, then reads the monitor settings. Null if the user cancelled or the monitor did not answer.</summary>
-    async Task<Dictionary<byte, int>?> ReadStepAsync(MonitorRow row, string step, IReadOnlyCollection<byte>? codes)
+    async Task<Dictionary<int, int>?> ReadStepAsync(MonitorRow row, string step, IReadOnlyCollection<int>? codes)
     {
         var answer = MessageBox.Show(this, step + Environment.NewLine + Environment.NewLine + Loc.T("Когда будет готово, нажмите «ОК»", "Click OK when ready"),
             "Auto HDR", MessageBoxButton.OKCancel, MessageBoxImage.Information);
