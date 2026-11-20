@@ -4,8 +4,7 @@ A small Windows 11 app that turns HDR on when a game starts and back to SDR when
 
 The interface is in English and Russian. The language follows Windows, and you can change it in Settings
 
-
-[![Watch the 90-second demo](docs/demo.jpg)] (https://github.com/user-attachments/assets/d99db3ee-6c74-4e96-a599-ae97c47dd86d)
+https://github.com/user-attachments/assets/d99db3ee-6c74-4e96-a599-ae97c47dd86d
 
 [Download](https://github.com/TatsukiJane/Auto-HDR-Enabler/releases/latest) · [Demo video](https://github.com/TatsukiJane/Auto-HDR-Enabler/releases/download/v1.0.10/AutoHdr-demo.mp4) · [How it works](#how-it-works) · [Is it safe](#is-it-safe) · [How to use](#how-to-use) · [На русском](#на-русском)
 
