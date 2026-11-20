@@ -96,7 +96,8 @@
                               IsSynchronizedWithCurrentItem="False"
                               EnableRowVirtualization="True" MouseDoubleClick="GamesGrid_DoubleClick">
                         <DataGrid.RowStyle>
-                            <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                            <!-- Fluent sets rows through this key: {x:Type DataGridRow} is the classic white style, invisible text in the dark theme -->
+                            <Style TargetType="DataGridRow" BasedOn="{StaticResource DefaultDataGridRowStyle}">
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding Missing}" Value="True">
                                         <Setter Property="Opacity" Value="0.55" />

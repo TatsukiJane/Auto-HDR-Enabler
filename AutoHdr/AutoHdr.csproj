@@ -12,7 +12,7 @@
     <StartupObject>AutoHdr.Program</StartupObject>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
-    <Version>1.0.11</Version>
+    <Version>1.0.12</Version>
     <Product>Auto HDR</Product>
     <Description>Turns HDR and a monitor picture mode on in Windows when games start</Description>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
