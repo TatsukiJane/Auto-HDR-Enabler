@@ -12,9 +12,9 @@
     <StartupObject>AutoHdr.Program</StartupObject>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
-    <Version>1.0.8</Version>
+    <Version>1.0.9</Version>
     <Product>Auto HDR</Product>
-    <Description>Turns HDR on in Windows when games start</Description>
+    <Description>Turns HDR and a monitor picture mode on in Windows when games start</Description>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <!-- WPF0001: Fluent theme (ThemeMode), WFO5001: WinForms dark mode for the tray menu -->
     <!-- WFO0003: DPI is set in the manifest on purpose, WPF manages it -->

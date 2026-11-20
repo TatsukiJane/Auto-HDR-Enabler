@@ -27,6 +27,9 @@ public sealed class AppSettings
     /// <summary>Displays where the app turned HDR on and has not turned it back yet (survives a restart).</summary>
     public List<string> PendingRevert { get; set; } = [];
 
+    /// <summary>Displays where the app switched the picture mode for a game: key → the mode to restore (survives a restart).</summary>
+    public Dictionary<string, int> PendingPresets { get; set; } = [];
+
     public static AppSettings Load() => JsonStore.Load<AppSettings>(AppPaths.SettingsFile);
 
     public void Save()

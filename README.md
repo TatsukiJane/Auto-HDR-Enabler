@@ -35,6 +35,8 @@ Auto HDR is not a driver, a game mod or an overlay. It does not inject anything 
 
 HDR is switched only on displays with “Auto HDR” checked. The checkbox turns on by itself only for the first physical HDR monitor found. TVs (the name contains “TV”, “BRAVIA” or a TV brand), virtual displays (Parsec, SudoMaker) and all displays connected later are added with the checkbox off
 
+The app can also switch the monitor to a saved picture mode, for example one with local dimming, while a game runs. See [Monitor picture mode](#monitor-picture-mode)
+
 ## Is it safe
 
 Auto HDR changes one thing in Windows: the HDR on and off switch of the displays you checked
@@ -42,12 +44,14 @@ Auto HDR changes one thing in Windows: the HDR on and off switch of the displays
 **What it changes**
 
 - The HDR switch of checked displays, through the same Windows API the Settings app uses
+- Only if you save a game picture mode for a monitor: the monitor picture mode, over DDC/CI, the same channel the monitor maker apps use
 - Its own files in `%LOCALAPPDATA%\AutoHdr`: `settings.json`, `games.json`, `monitors.json` and `log.txt`
 - Only if you turn on “Start with Windows”: a copy of the app in `C:\Program Files\Auto HDR` and a Task Scheduler task named “AutoHDR Enabler”
 
 **What it does not touch**
 
-- Resolution, refresh rate, color profiles, HDR calibration, brightness and GPU driver settings
+- Resolution, refresh rate, color profiles, HDR calibration and GPU driver settings
+- Monitor settings such as brightness: the app only selects one of the picture modes you set up on the monitor, and only for games with “Monitor mode” checked
 - Game files and game settings. Game exe files are only read, to look for HDR mentions
 - The registry. The app only reads where launchers keep their game lists
 - Other programs. No injection, no hooks, no reading of game memory. The app sees only the list of running processes and the paths of their exe files
@@ -104,6 +108,23 @@ A fallback for Steam is the game launch options (Properties → Launch Options):
 
 Then HDR turns on strictly before the game starts and turns off after all its processes exit. If auto switching is paused, the game starts without HDR. Settings shows this line with the right path
 
+### Monitor picture mode
+
+Some monitors have several picture modes, for example with and without local dimming on a Mini LED monitor. Auto HDR can switch to the mode you want while a game or any other program runs, and switch back after it exits
+
+1. Select the mode with the monitor buttons
+2. On the Displays tab, click “Save mode for games” next to the monitor. The row shows the saved mode number
+3. Switch the monitor back to your everyday mode
+4. On the Games tab, check “Monitor mode” for the games you want. Programs that are not games can be added with “Add game”
+
+The mode works on its own, without HDR, and together with it. When the game exits, the app restores the previous mode. If the monitor was already in the game mode, or you changed the mode yourself during the game, the app leaves it as is
+
+Requirements and limits:
+
+- DDC/CI must be on in the monitor menu. Close the monitor maker app while you play: two apps talking to the monitor at once may interfere
+- The app uses VCP code `E0` for the picture mode. It is checked on the Titan Army P275MS+. Other monitors may keep the mode under another code: then “Save mode for games” saves a wrong value. Tell us in Issues if your monitor does not switch
+- In HDR the monitor keeps the selected mode but applies its own HDR brightness and color settings on top
+
 ### Update
 
 Exit Auto HDR from the tray icon menu, extract the new archive and run `AutoHdr.exe --install-task` in its folder. Without the command line: run the new `AutoHdr.exe`, then turn “Start with Windows” off and on again. The copy in Program Files gets updated
@@ -156,9 +177,11 @@ Auto HDR — маленькое приложение для Windows 11, кото
 
 **Как работает.** Приложение находит игры в Steam, GOG, Epic, EA app, Ubisoft Connect, Xbox, Rockstar и в ваших папках и проверяет поддержку HDR по Steam, PCGamingWiki и файлам игры. Раз в 0,25 с оно смотрит список запущенных процессов. Когда стартует игра с авто-HDR, приложение включает HDR на отмеченных мониторах, а после выхода из игры выключает его. HDR, включённый до игры, остаётся включённым
 
+**Режим монитора.** Приложение может на время игры или любой программы переключать монитор в сохранённый режим изображения, например с local dimming. Включите режим кнопками монитора и нажмите «Запомнить режим для игр» во вкладке «Мониторы», затем отметьте «Режим монитора» у нужных игр. Нужен включённый DDC/CI в меню монитора. Режим хранится в коде VCP `E0`: это проверено на Titan Army P275MS+, у других моделей код может быть другим
+
 **Безопасность**
 
-- Приложение меняет в Windows только переключатель HDR на отмеченных мониторах, тот же, что в «Параметры → Система → Дисплей». Разрешение, частоту, цветовые профили и настройки драйвера оно не трогает
+- Приложение меняет в Windows только переключатель HDR на отмеченных мониторах, тот же, что в «Параметры → Система → Дисплей», и режим изображения монитора, если вы сохранили его для игр. Разрешение, частоту, цветовые профили и настройки драйвера оно не трогает
 - В игры ничего не внедряет, файлы игр только читает, реестр только читает
 - В сеть ходит только в Steam Store и PCGamingWiki и передаёт номер игры в Steam или GOG либо её название. Ни телеметрии, ни аккаунтов, ни автообновлений. Проверку в интернете можно выключить в настройках
 - Права администратора нужны только для «Ждать HDR». Чтобы не было окна UAC при каждом входе, приложение запускается через планировщик заданий из `C:\Program Files\Auto HDR`, где его не может подменить обычная программа

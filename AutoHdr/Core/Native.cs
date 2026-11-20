@@ -3,7 +3,7 @@ using Microsoft.Win32.SafeHandles;
 
 namespace AutoHdr.Core;
 
-/// <summary>P/Invoke: Display Configuration API (HDR) and process control.</summary>
+/// <summary>P/Invoke: Display Configuration API (HDR), DDC/CI (monitor picture mode) and process control.</summary>
 public static class Native
 {
     public const uint QDC_ONLY_ACTIVE_PATHS = 0x2;
@@ -142,6 +142,72 @@ public static class Native
 
     [DllImport("user32.dll")]
     public static extern int DisplayConfigSetDeviceInfo(ref SetState request);
+
+    // ---- Monitor settings over DDC/CI ----
+
+    public const uint EDD_GET_DEVICE_INTERFACE_NAME = 0x1;
+    public const int DISPLAY_DEVICE_ACTIVE = 0x1;
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    public struct MonitorInfoEx
+    {
+        public int Size;
+        public int Left, Top, Right, Bottom;
+        public int WorkLeft, WorkTop, WorkRight, WorkBottom;
+        public uint Flags;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        public string DeviceName;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    public struct DisplayDevice
+    {
+        public int Size;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        public string DeviceName;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+        public string DeviceString;
+        public int StateFlags;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+        public string DeviceId;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+        public string DeviceKey;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    public struct PhysicalMonitor
+    {
+        public IntPtr Handle;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+        public string Description;
+    }
+
+    public delegate bool MonitorEnumProc(IntPtr monitor, IntPtr hdc, IntPtr rect, IntPtr data);
+
+    [DllImport("user32.dll")]
+    public static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr clip, MonitorEnumProc callback, IntPtr data);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "GetMonitorInfoW")]
+    public static extern bool GetMonitorInfo(IntPtr monitor, ref MonitorInfoEx info);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "EnumDisplayDevicesW")]
+    public static extern bool EnumDisplayDevices(string? device, uint index, ref DisplayDevice displayDevice, uint flags);
+
+    // dxva2.dll is not a KnownDLL: load it only from System32, the tray runs with administrator rights
+    [DllImport("dxva2.dll"), DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    public static extern bool GetNumberOfPhysicalMonitorsFromHMONITOR(IntPtr monitor, out uint count);
+
+    [DllImport("dxva2.dll"), DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    public static extern bool GetPhysicalMonitorsFromHMONITOR(IntPtr monitor, uint count, [Out] PhysicalMonitor[] monitors);
+
+    [DllImport("dxva2.dll"), DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    public static extern bool DestroyPhysicalMonitor(IntPtr handle);
+
+    [DllImport("dxva2.dll"), DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    public static extern bool GetVCPFeatureAndVCPFeatureReply(IntPtr handle, byte code, IntPtr type, out uint current, out uint maximum);
+
+    [DllImport("dxva2.dll"), DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    public static extern bool SetVCPFeature(IntPtr handle, byte code, uint value);
 
     // ---- Processes ----
 

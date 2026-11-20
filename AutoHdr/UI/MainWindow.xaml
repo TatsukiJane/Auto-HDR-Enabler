@@ -141,6 +141,16 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="{ui:Tr 'Режим монитора', 'Monitor mode'}" Width="140" SortMemberPath="MonitorMode"
+                                                    ToolTipService.ToolTip="{ui:Tr 'Переключать монитор в сохранённый режим изображения, пока игра запущена. Режим запоминается на вкладке «Мониторы»', 'Switch the monitor to the saved picture mode while the game is running. The mode is saved on the Displays tab'}">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding MonitorModeUi, UpdateSourceTrigger=PropertyChanged}"
+                                                  HorizontalAlignment="Center" MinWidth="0" Focusable="False"
+                                                  ToolTip="{ui:Tr 'Переключать монитор в сохранённый режим изображения, пока игра запущена', 'Switch the monitor to the saved picture mode while the game is running'}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                             <DataGridTemplateColumn Header="{ui:Tr 'Расположение', 'Location'}" Width="3*" SortMemberPath="Location">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
@@ -175,7 +185,7 @@
         <TabItem Header="{ui:Tr 'Мониторы', 'Displays'}">
             <DockPanel Margin="0,12,0,0">
                 <TextBlock DockPanel.Dock="Top" Style="{StaticResource Hint}" FontSize="13" Margin="0,0,0,12"
-                           Text="{ui:Tr 'HDR переключается только на отмеченных мониторах. Новые мониторы и телевизоры добавляются с выключенным авто-HDR', 'HDR is switched only on checked displays. New displays and TVs are added with auto HDR off'}" />
+                           Text="{ui:Tr 'HDR переключается только на отмеченных мониторах. Новые мониторы и телевизоры добавляются с выключенным авто-HDR. Чтобы игры включали нужный режим изображения, например с local dimming, включите его кнопками монитора и нажмите «Запомнить режим для игр»', 'HDR is switched only on checked displays. New displays and TVs are added with auto HDR off. To have games switch on a picture mode, for example with local dimming, select it with the monitor buttons and click “Save mode for games”'}" />
                 <DataGrid x:Name="MonitorsGrid" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
                           HeadersVisibility="Column" GridLinesVisibility="None" SelectionMode="Single" RowHeaderWidth="0"
                           CanUserSortColumns="False">
@@ -209,6 +219,9 @@
                                         <Button Content="{ui:Tr 'Переключить HDR', 'Toggle HDR'}" Padding="10,4" Margin="0,0,8,0" Click="ToggleMonitor_Click"
                                                 ToolTip="{ui:Tr 'Включить или выключить HDR прямо сейчас, без игры', 'Turn HDR on or off right now, without a game'}"
                                                 Visibility="{Binding CanToggle, Converter={StaticResource Visible}}" />
+                                        <Button Content="{ui:Tr 'Запомнить режим для игр', 'Save mode for games'}" Padding="10,4" Margin="0,0,8,0" Click="SavePreset_Click"
+                                                ToolTip="{ui:Tr 'Запомнить текущий режим изображения монитора: игры с флажком «Режим монитора» будут включать его на время игры', 'Save the current monitor picture mode: games with “Monitor mode” checked switch to it while they run'}"
+                                                Visibility="{Binding Connected, Converter={StaticResource Visible}}" />
                                         <Button Content="{ui:Tr 'Забыть', 'Forget'}" Padding="10,4" Click="ForgetMonitor_Click"
                                                 Visibility="{Binding CanForget, Converter={StaticResource Visible}}"
                                                 ToolTip="{ui:Tr 'Убрать монитор из списка. Когда его подключат снова, он появится с выключенным авто-HDR', 'Remove the display from the list. When it is connected again, it comes back with auto HDR off'}" />

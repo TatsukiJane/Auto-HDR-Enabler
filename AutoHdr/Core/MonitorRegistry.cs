@@ -9,6 +9,9 @@ public sealed class MonitorRecord
     public bool AutoHdr { get; set; }
     public bool HdrSupported { get; set; }
     public bool IsVirtual { get; set; }
+
+    /// <summary>Picture mode (DDC/CI code E0) to switch to while a game with “Monitor mode” runs; null — not set.</summary>
+    public int? GamePreset { get; set; }
 }
 
 public sealed class MonitorRegistryData
@@ -49,6 +52,16 @@ public sealed partial class MonitorRegistry
     /// <summary>Displays where the app may switch HDR.</summary>
     public List<DisplayInfo> Targets(IEnumerable<DisplayInfo> displays) =>
         displays.Where(d => d.HdrSupported && IsAuto(d)).ToList();
+
+    /// <summary>Connected displays with a saved picture mode for games.</summary>
+    public List<(DisplayInfo Display, int Preset)> GamePresets(IEnumerable<DisplayInfo> displays)
+    {
+        lock (gate)
+            return displays.Select(d => (d, FindLocked(d)?.GamePreset))
+                .Where(p => p.Item2 != null)
+                .Select(p => (p.d, p.Item2!.Value))
+                .ToList();
+    }
 
     public void Sync(IReadOnlyList<DisplayInfo> displays)
     {
@@ -106,6 +119,19 @@ public sealed partial class MonitorRegistry
             data.Initialized = true; // the user picked displays: new ones no longer turn on by themselves
             SaveLocked();
             Log.Info(Loc.T($"Авто-HDR для «{record.Name}» {(on ? "включён" : "выключен")}", $"Auto HDR for “{record.Name}” turned {(on ? "on" : "off")}"));
+        }
+        Changed?.Invoke();
+    }
+
+    public void SetGamePreset(string key, int preset)
+    {
+        lock (gate)
+        {
+            var record = data.Monitors.FirstOrDefault(m => m.Key == key);
+            if (record == null) return;
+            record.GamePreset = preset;
+            SaveLocked();
+            Log.Info(Loc.T($"Режим для игр на «{record.Name}»: {preset}", $"Game picture mode on “{record.Name}”: {preset}"));
         }
         Changed?.Invoke();
     }

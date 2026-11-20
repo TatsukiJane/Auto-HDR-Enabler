@@ -255,7 +255,8 @@ public partial class MainWindow : Window
             // For a virtual display the connection type already says “Virtual”: show it once
             var connection = record.IsVirtual ? Loc.T("Виртуальный дисплей", "Virtual display") : record.Connection;
             var kind = !record.IsVirtual && MonitorRegistry.LooksLikeTv(record.Name) ? Loc.T("телевизор", "TV") : null;
-            row.Details = string.Join(" · ", new[] { connection, record.EdidId, kind }.Where(s => !string.IsNullOrEmpty(s)));
+            var preset = record.GamePreset is int p ? Loc.T($"режим для игр: {p}", $"game mode: {p}") : null;
+            row.Details = string.Join(" · ", new[] { connection, record.EdidId, kind, preset }.Where(s => !string.IsNullOrEmpty(s)));
             row.Connected = display != null;
             row.HdrSupported = display?.HdrSupported ?? record.HdrSupported;
             row.HdrOn = display?.HdrOn ?? false;
@@ -270,6 +271,23 @@ public partial class MainWindow : Window
         ((Button)sender).IsEnabled = false;
         try { await app.ToggleHdrAsync(row.Key); }
         finally { ((Button)sender).IsEnabled = true; }
+    }
+
+    async void SavePreset_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is not MonitorRow row) return;
+        // A second click during the read just reads again: MonitorPreset serializes the requests
+        var preset = await Task.Run(() => MonitorPreset.Read(row.Key, TimeSpan.FromSeconds(2)));
+        if (preset is int value)
+        {
+            app.Monitors.SetGamePreset(row.Key, value);
+            return;
+        }
+        Log.Warn(Loc.T($"«{row.Name}» не ответил по DDC/CI: режим для игр не сохранён", $"“{row.Name}” did not answer over DDC/CI: the game mode was not saved"));
+        MessageBox.Show(this,
+            Loc.T("Монитор не ответил по DDC/CI. Включите DDC/CI в меню монитора и закройте другие программы управления монитором",
+                "The monitor did not answer over DDC/CI. Turn DDC/CI on in the monitor menu and close other monitor control apps"),
+            "Auto HDR", MessageBoxButton.OK, MessageBoxImage.Warning);
     }
 
     void ForgetMonitor_Click(object sender, RoutedEventArgs e)

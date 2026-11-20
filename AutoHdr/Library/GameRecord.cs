@@ -54,6 +54,13 @@ public sealed class GameRecord : Observable
         set { if (Set(ref field, value)) Raise(nameof(HoldUi)); }
     }
 
+    /// <summary>Switch the monitor to the saved picture mode (e.g. with local dimming) while the game runs.</summary>
+    public bool MonitorMode
+    {
+        get;
+        set { if (Set(ref field, value)) Raise(nameof(MonitorModeUi)); }
+    }
+
     public bool Missing
     {
         get;
@@ -112,6 +119,18 @@ public sealed class GameRecord : Observable
         {
             if (HoldUntilHdr == value) return;
             HoldUntilHdr = value;
+            UserChanged?.Invoke(this);
+        }
+    }
+
+    [JsonIgnore]
+    public bool MonitorModeUi
+    {
+        get => MonitorMode;
+        set
+        {
+            if (MonitorMode == value) return;
+            MonitorMode = value;
             UserChanged?.Invoke(this);
         }
     }
